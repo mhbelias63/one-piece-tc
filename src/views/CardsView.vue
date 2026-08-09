@@ -1,0 +1,824 @@
+<template>
+  <div class="collection-shell">
+    <div class="main-panel">
+      <!-- HEADER DE LA PAGE -->
+      <div class="page-header">
+        <div>
+          <h1>MA COLLECTION</h1>
+          <p>
+            {{ selectedSet === 'ALL' ? 'Toutes les cartes' : `Cartes du set ${selectedSet}` }}
+            <span>• {{ filteredCards.length }} cartes filtrées</span>
+          </p>
+        </div>
+
+        <div class="progress-card">
+          <div class="progress-copy">
+            <strong>Progression de la collection</strong>
+            <span>{{ collectionLabel }}</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" :style="{ width: `${progressPercent}%` }"></div>
+          </div>
+          <small>{{ progressPercent }}%</small>
+        </div>
+      </div>
+
+      <!-- BARRE DE FILTRES PRINCIPALE -->
+      <div class="filter-bar">
+        <div class="search-box">
+          <span class="search-icon">⌕</span>
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Rechercher une carte par nom, effet ou trait..."
+            class="search-input"
+          />
+          <button v-if="searchQuery" @click="searchQuery = ''" class="clear-search">×</button>
+        </div>
+
+        <select v-model="sortMode" class="select-field">
+          <option value="id">Trier par numéro</option>
+          <option value="name">Trier par nom</option>
+          <option value="rarity">Trier par rareté</option>
+          <option value="cost">Trier par coût</option>
+        </select>
+
+        <div class="filter-group">
+          <button @click="selectedType = 'all'" :class="['filter-btn', { active: selectedType === 'all' }]">Tous</button>
+          <button @click="selectedType = 'standard'" :class="['filter-btn', { active: selectedType === 'standard' }]">Classiques</button>
+          <button @click="selectedType = 'parallel'" :class="['filter-btn', { active: selectedType === 'parallel' }]">Alternatives</button>
+        </div>
+      </div>
+
+      <!-- FILTRES SECONDAIRES -->
+      <div class="secondary-filters">
+        <div class="filter-pill-group">
+          <button @click="selectedColor = ''" :class="['chip', { active: selectedColor === '' }]">Toutes les couleurs</button>
+          <button @click="selectedColor = 'red'" :class="['chip', { active: selectedColor === 'red' }]">Rouge</button>
+          <button @click="selectedColor = 'blue'" :class="['chip', { active: selectedColor === 'blue' }]">Bleu</button>
+          <button @click="selectedColor = 'green'" :class="['chip', { active: selectedColor === 'green' }]">Vert</button>
+          <button @click="selectedColor = 'purple'" :class="['chip', { active: selectedColor === 'purple' }]">Violet</button>
+        </div>
+
+        <div class="filter-pill-group">
+          <button @click="selectedRarity = ''" :class="['chip', { active: selectedRarity === '' }]">Toutes les raretés</button>
+          <button @click="selectedRarity = 'SR'" :class="['chip', { active: selectedRarity === 'SR' }]">SR</button>
+          <button @click="selectedRarity = 'R'" :class="['chip', { active: selectedRarity === 'R' }]">R</button>
+          <button @click="selectedRarity = 'UC'" :class="['chip', { active: selectedRarity === 'UC' }]">UC</button>
+          <button @click="selectedRarity = 'C'" :class="['chip', { active: selectedRarity === 'C' }]">C</button>
+        </div>
+      </div>
+
+      <!-- ÉTATS DE CHARGEMENT / VIDE -->
+      <div v-if="loading" class="loading">Chargement de la collection...</div>
+
+      <div v-else-if="displayedCards.length === 0" class="empty-state">
+        Aucune carte ne correspond à tes filtres.
+      </div>
+
+      <!-- GRILLE DES CARTES DE COLLECTION -->
+      <div v-else class="card-grid">
+        <article
+          v-for="card in displayedCards"
+          :key="card.id"
+          class="card-item"
+          @click="openCardModal(card)"
+        >
+          <div class="card-art">
+            <img 
+              v-if="card.image_url" 
+              :src="card.image_url" 
+              :alt="card.name"
+              @error="handleImageError"
+            />
+            <div class="placeholder-art" :style="{ display: card.image_url ? 'none' : 'grid' }">?</div>
+          </div>
+
+          <div class="card-footer">
+            <h3 class="card-title-centered">{{ card.name }}</h3>
+            
+            <div class="card-meta-row">
+              <span class="card-code">{{ card.id }}</span>
+              <span class="rarity-tag" :style="{ color: getRarityColor(card.rarity) }">
+                {{ card.rarity || 'N/A' }}
+              </span>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div v-if="filteredCards.length > displayedCards.length" class="load-more-row">
+        <button class="load-more-btn" @click="visibleCount += 12">Charger plus de cartes</button>
+        <span>Affichage de {{ displayedCards.length }} sur {{ filteredCards.length }} cartes</span>
+      </div>
+    </div>
+
+    <!-- PANNEAU LATÉRAL (IDENTIQUE À HOMEVIEW) -->
+    <aside class="side-panel">
+      <div class="profile-card">
+        <div class="avatar">
+          <img src="https://api.dicebear.com/7.x/bottts/svg?seed=EliasGP" alt="Avatar" />
+        </div>
+        <div class="profile-info">
+          <h3>EliasGP</h3>
+          <p>Niveau 24</p>
+          <div class="xp-bar">
+            <div class="xp-progress"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="widget-card">
+        <div class="widget-title-row">
+          <h3>Amis</h3>
+          <span class="widget-link">Voir tout</span>
+        </div>
+        <div v-for="friend in friends" :key="friend.name" class="friend-item">
+          <div class="friend-avatar">
+            <img :src="`https://api.dicebear.com/7.x/bottts/svg?seed=${friend.name}`" alt="" />
+          </div>
+          <div class="friend-meta">
+            <h4>{{ friend.name }}</h4>
+            <div class="status-line">
+              <span class="status-dot-indicator" :class="getStatusClass(friend.status)"></span>
+              <span>{{ friend.status }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="widget-card missions-card">
+        <div class="widget-title-row">
+          <h3>Missions Quotidiennes</h3>
+        </div>
+
+        <div v-for="mission in missions" :key="mission.label" class="mission-item">
+          <div class="mission-row">
+            <span>{{ mission.label }}</span>
+            <strong>{{ mission.count }}</strong>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" :style="{ width: mission.progress + '%' }"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="widget-card event-card">
+        <h3>Événement en Cours</h3>
+        <div class="event-banner">
+          <h4>Championnat des pirates</h4>
+          <button type="button">Participer</button>
+        </div>
+      </div>
+    </aside>
+
+    <CardModal :card="selectedCard" @close="selectedCard = null" />
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { supabase } from '../supabase'
+import CardModal from '../components/CardModal.vue'
+
+const route = useRoute()
+
+const cards = ref([])
+const loading = ref(true)
+const selectedSet = ref('ALL')
+const selectedCard = ref(null)
+const visibleCount = ref(12)
+
+const selectedType = ref('all')
+const searchQuery = ref('')
+const selectedRarity = ref('')
+const selectedColor = ref('')
+const sortMode = ref('id')
+
+const friends = [
+  { name: 'Zoro_IM', status: 'En ligne' },
+  { name: 'Nami_Swan', status: 'En ligne' },
+  { name: 'FireFistLeg', status: 'En combat' },
+  { name: 'LowB..', status: 'Hors-ligne' },
+  { name: 'ShanksLeRoux', status: 'En ligne' }
+]
+
+const missions = [
+  { label: 'Ouvrir 2 boosters', count: '1/2', progress: 50 },
+  { label: 'Gagner 3 combats', count: '0/3', progress: 0 },
+  { label: 'Collectionner 3 cartes', count: '2/3', progress: 66 }
+]
+
+const targetCollectionCount = 500
+
+async function fetchCards() {
+  loading.value = true
+  visibleCount.value = 12
+
+  let query = supabase.from('cards').select('*')
+
+  if (selectedSet.value && selectedSet.value !== 'ALL') {
+    query = query.eq('set_id', selectedSet.value)
+  }
+
+  const { data, error } = await query
+
+  if (error) {
+    console.error('Erreur Supabase :', error)
+    cards.value = []
+  } else {
+    cards.value = data || []
+  }
+
+  loading.value = false
+}
+
+const filteredCards = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+
+  return cards.value
+    .filter(card => {
+      const isParallel = card.id?.includes('_ALT_') || card.name?.toLowerCase().includes('(parallel)')
+      if (selectedType.value === 'standard' && isParallel) return false
+      if (selectedType.value === 'parallel' && !isParallel) return false
+
+      if (selectedRarity.value && card.rarity !== selectedRarity.value) return false
+
+      if (selectedColor.value) {
+        const color = String(card.color || '').toLowerCase()
+        if (!color.includes(selectedColor.value)) return false
+      }
+
+      if (query) {
+        const name = (card.name || '').toLowerCase()
+        const id = (card.id || '').toLowerCase()
+        const effect = (card.effect || '').toLowerCase()
+        if (!name.includes(query) && !id.includes(query) && !effect.includes(query)) return false
+      }
+
+      return true
+    })
+    .sort((a, b) => {
+      switch (sortMode.value) {
+        case 'name':
+          return (a.name || '').localeCompare(b.name || '')
+        case 'rarity':
+          return (a.rarity || '').localeCompare(b.rarity || '')
+        case 'cost':
+          return Number(a.cost || 0) - Number(b.cost || 0)
+        default:
+          return (a.id || '').localeCompare(b.id || '')
+      }
+    })
+})
+
+const displayedCards = computed(() => filteredCards.value.slice(0, visibleCount.value))
+const progressPercent = computed(() => Math.min(100, Math.round((cards.value.length / targetCollectionCount) * 100)))
+const collectionLabel = computed(() => `Ma collection : ${cards.value.length} / ${targetCollectionCount} cartes`)
+
+function getRarityColor(rarityCode) {
+  if (!rarityCode) return '#9ca3af'
+
+  const code = String(rarityCode).trim().toUpperCase()
+  const rarityColors = {
+    C: '#9ca3af',
+    UC: '#22c55e',
+    R: '#3b82f6',
+    SR: '#eab308',
+    SEC: '#c084fc',
+    L: '#ef4444',
+    P: '#06b6d4'
+  }
+
+  return rarityColors[code] || '#eab308'
+}
+
+function handleImageError(event) {
+  event.target.style.display = 'none'
+  if (event.target.nextElementSibling) {
+    event.target.nextElementSibling.style.display = 'grid'
+  }
+}
+
+function getStatusClass(status) {
+  if (status === 'En ligne') return 'status-online'
+  if (status === 'En combat') return 'status-ingame'
+  return 'status-offline'
+}
+
+function openCardModal(card) {
+  selectedCard.value = card
+}
+
+watch(
+  () => route.query.set,
+  newSet => {
+    selectedSet.value = newSet || 'ALL'
+    fetchCards()
+  },
+  { immediate: true }
+)
+</script>
+
+<style scoped>
+.collection-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  gap: 24px;
+  align-items: start;
+}
+
+.main-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* PAGE HEADER */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.page-header h1 {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #f8fafc;
+  letter-spacing: 0.04em;
+}
+
+.page-header p {
+  color: #94a3b8;
+  margin-top: 4px;
+  font-size: 0.9rem;
+}
+
+.progress-card {
+  background: #1b2333;
+  border: 1px solid #273447;
+  border-radius: 16px;
+  padding: 14px 16px;
+  min-width: 280px;
+}
+
+.progress-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #f8fafc;
+  margin-bottom: 10px;
+}
+
+.progress-copy strong {
+  font-size: 0.9rem;
+}
+
+.progress-copy span {
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.progress-track {
+  width: 100%;
+  height: 6px;
+  background: #1e293b;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #eab308;
+  border-radius: inherit;
+}
+
+.progress-card small {
+  color: #eab308;
+  font-weight: 700;
+}
+
+/* BARRES DE FILTRES */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  background: #1b2333;
+  border: 1px solid #273447;
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.search-box {
+  position: relative;
+  flex: 1;
+  min-width: 260px;
+}
+
+.search-input {
+  width: 100%;
+  background: #0d111a;
+  border: 1px solid #273447;
+  border-radius: 12px;
+  padding: 10px 38px 10px 40px;
+  color: #f8fafc;
+  font-size: 0.9rem;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #eab308;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+}
+
+.clear-search {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.select-field {
+  background: #0d111a;
+  border: 1px solid #273447;
+  color: #f8fafc;
+  border-radius: 12px;
+  padding: 10px 12px;
+  min-width: 170px;
+  font-size: 0.85rem;
+}
+
+.filter-group,
+.filter-pill-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-btn,
+.chip {
+  border: 1px solid #273447;
+  background: #0d111a;
+  color: #cbd5e1;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-btn.active,
+.chip.active {
+  background: #eab308;
+  color: #111827;
+  border-color: #eab308;
+}
+
+.secondary-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.loading,
+.empty-state {
+  padding: 36px;
+  text-align: center;
+  color: #94a3b8;
+  background: #1b2333;
+  border: 1px solid #273447;
+  border-radius: 16px;
+}
+
+/* GRILLE DES CARTES */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+.card-item {
+  background: #1b2333;
+  border: 1px solid #243041;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-item:hover {
+  transform: translateY(-4px);
+  border-color: #eab308;
+}
+
+.card-art {
+  width: 100%;
+  aspect-ratio: 4 / 5.5;
+  background: #0d111a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.placeholder-art {
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.card-footer {
+  background: #0d111a;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.card-title-centered {
+  color: #f8fafc;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-code {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: monospace;
+}
+
+.rarity-tag {
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.load-more-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.load-more-btn {
+  background: #eab308;
+  color: #111827;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* SIDE PANEL (HOMOGÈNE À HOMEVIEW) */
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profile-card,
+.widget-card {
+  background: #1b2333;
+  border: 1px solid #273447;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.profile-card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  background: #0d111a;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.avatar img, .friend-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-info h3 {
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.profile-info p {
+  color: #64748b;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.xp-bar {
+  width: 100%;
+  height: 4px;
+  background: #1e293b;
+  border-radius: 2px;
+  margin-top: 8px;
+}
+
+.xp-progress {
+  height: 4px;
+  width: 65%;
+  border-radius: 2px;
+  background: #3b82f6;
+}
+
+.widget-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.widget-title-row h3 {
+  color: white;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.widget-link {
+  color: #64748b;
+  font-size: 10px;
+}
+
+.friend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.friend-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 14px;
+  background: #0d111a;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.friend-meta h4 {
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #94a3b8;
+  font-size: 10px;
+  margin-top: 2px;
+}
+
+.status-dot-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.status-online { background-color: #22c55e; }
+.status-ingame { background-color: #f59e0b; }
+.status-offline { background-color: #64748b; }
+
+.mission-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.mission-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+  font-size: 11px;
+}
+
+.progress-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #1e293b;
+  overflow: hidden;
+}
+
+.event-card h3 {
+  color: white;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.event-banner {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.event-banner h4 {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.event-banner button {
+  align-self: flex-start;
+  border: none;
+  background: #0d111a;
+  color: white;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 1200px) {
+  .collection-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .side-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .progress-card {
+    min-width: 100%;
+  }
+
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  }
+
+  .side-panel {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

@@ -1,9 +1,7 @@
 <template>
-  <!-- Si on est sur /auth, on affiche uniquement la vue sans le layout global -->
   <router-view v-if="isAuthPage" />
 
-  <!-- Sinon, on affiche l'application complète avec la navigation -->
-  <div v-else class="app-layout">
+  <div v-else class="app-layout" :class="{ 'light-theme': isLightTheme }">
     <!-- SIDEBAR PC / BARRE BASSE MOBILE -->
     <aside class="navigation-sidebar">
       <div class="brand-header">
@@ -37,11 +35,29 @@
     <!-- WORKSPACE PRINCIPAL -->
     <div class="main-wrapper">
       <header class="topbar">
-        <div class="user-badge-mobile">
-          <img src="https://api.dicebear.com/7.x/bottts/svg?seed=EliasGP" alt="Avatar" class="avatar" />
-          <div class="user-info">
-            <strong>Elias</strong>
-            <small>Niveau 24</small>
+        <!-- USER PROFILE BADGE & DROPDOWN -->
+        <div class="profile-dropdown-wrapper" ref="dropdownRef">
+          <div class="user-badge" @click="menuOpen = !menuOpen">
+            <img :src="profile.avatar_url" alt="Avatar" class="avatar" />
+            <div class="user-info">
+              <strong>{{ profile.username }}</strong>
+              <small>Niveau 24</small>
+            </div>
+            <span class="dropdown-arrow">▾</span>
+          </div>
+
+          <!-- DROPDOWN MENU -->
+          <div v-if="menuOpen" class="profile-menu">
+            <button class="menu-item" @click="openProfileModal">
+              <span class="icon">✏️</span> Modifier le profil
+            </button>
+            <button class="menu-item" @click="toggleTheme">
+              <span class="icon">{{ isLightTheme ? '🌙' : '☀️' }}</span> Mode {{ isLightTheme ? 'Sombre' : 'Clair' }}
+            </button>
+            <hr class="menu-divider" />
+            <button class="menu-item logout-btn" @click="handleLogout">
+              <span class="icon">🚪</span> Déconnexion
+            </button>
           </div>
         </div>
 
@@ -64,37 +80,158 @@
         <router-view />
       </main>
     </div>
+
+    <!-- MODAL DE MODIFICATION DE PROFIL -->
+    <ProfileModal 
+      v-if="showModal" 
+      :profile="profile" 
+      @close="showModal = false" 
+      @updated="fetchUserProfile" 
+    />
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { supabase } from './supabase'
+import ProfileModal from './components/ProfileModal.vue'
 
 const route = useRoute()
+const router = useRouter()
+
 const isAuthPage = computed(() => route.path === '/auth')
+const menuOpen = ref(false)
+const showModal = ref(false)
+const isLightTheme = ref(false)
+const dropdownRef = ref(null)
+
+const profile = ref({
+  id: '',
+  username: 'Chargement...',
+  avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Luffy',
+  username_updated_at: null
+})
+
+async function fetchUserProfile() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+
+  if (data && !error) {
+    profile.value = data
+  }
+}
+
+function openProfileModal() {
+  menuOpen.value = false
+  showModal.value = true
+}
+
+function toggleTheme() {
+  isLightTheme.value = !isLightTheme.value
+  menuOpen.value = false
+}
+
+async function handleLogout() {
+  await supabase.auth.signOut()
+  menuOpen.value = false
+  router.push('/auth')
+}
+
+function handleClickOutside(event) {
+  if (dropdownRef.value && !dropdownRef.value.contains(event.target)) {
+    menuOpen.value = false
+  }
+}
+
+onMounted(() => {
+  fetchUserProfile()
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 </script>
 
 <style>
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: system-ui, -apple-system, sans-serif;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+body { background-color: #0b0f19; color: #f8fafc; overflow-x: hidden; }
 
-body {
-  background-color: #0b0f19;
-  color: #f8fafc;
-  overflow-x: hidden;
-}
+.app-layout { display: flex; min-height: 100vh; }
 
-.app-layout {
+/* DROPDOWN PROFIL */
+.profile-dropdown-wrapper { position: relative; }
+
+.user-badge {
   display: flex;
-  min-height: 100vh;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: #161b22;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
 }
 
-/* DESKTOP SIDEBAR */
+.user-badge:hover { border-color: #f59e0b; }
+
+.user-badge .avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #f59e0b;
+}
+
+.user-info { display: flex; flex-direction: column; font-size: 0.78rem; }
+.user-info small { color: #94a3b8; font-size: 0.65rem; }
+.dropdown-arrow { color: #94a3b8; font-size: 0.8rem; }
+
+.profile-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  background: #111827;
+  border: 1px solid #273447;
+  border-radius: 12px;
+  padding: 6px;
+  min-width: 180px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  color: #cbd5e1;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+
+.menu-item:hover { background: rgba(255, 255, 255, 0.05); color: #ffffff; }
+.menu-divider { border: none; border-top: 1px solid #273447; margin: 4px 0; }
+.logout-btn { color: #ef4444; }
+.logout-btn:hover { background: rgba(239, 68, 68, 0.1); }
+
+/* SIDEBAR PC & TOPBAR */
 .navigation-sidebar {
   width: 240px;
   background-color: #111827;
@@ -103,29 +240,14 @@ body {
   flex-direction: column;
   padding: 20px 12px;
   position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
+  top: 0; bottom: 0; left: 0;
   z-index: 100;
 }
 
-.brand-header {
-  padding: 10px;
-  margin-bottom: 20px;
-  text-align: center;
-}
+.brand-header { padding: 10px; margin-bottom: 20px; text-align: center; }
+.brand-logo { max-width: 100%; height: 40px; object-fit: contain; }
 
-.brand-logo {
-  max-width: 100%;
-  height: 40px;
-  object-fit: contain;
-}
-
-.nav-links {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
+.nav-links { display: flex; flex-direction: column; gap: 6px; }
 
 .nav-item {
   display: flex;
@@ -144,28 +266,11 @@ body {
   width: 100%;
 }
 
-.nav-item:hover:not(.disabled) {
-  background: rgba(255, 255, 255, 0.05);
-  color: #ffffff;
-}
+.nav-item:hover:not(.disabled) { background: rgba(255, 255, 255, 0.05); color: #ffffff; }
+.nav-item.router-link-active { background: #f59e0b; color: #111827; }
+.nav-item.disabled { opacity: 0.35; cursor: not-allowed; }
 
-.nav-item.router-link-active {
-  background: #f59e0b;
-  color: #111827;
-}
-
-.nav-item.disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.main-wrapper {
-  margin-left: 240px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
+.main-wrapper { margin-left: 240px; flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
 .topbar {
   height: 60px;
@@ -180,18 +285,9 @@ body {
   z-index: 90;
 }
 
-.user-badge-mobile {
-  display: none;
-}
-
 .spacer { flex: 1; }
 
-.currency-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
+.currency-group { display: flex; align-items: center; gap: 10px; }
 .currency-badge {
   display: flex;
   align-items: center;
@@ -205,7 +301,6 @@ body {
 }
 
 .gem-icon { width: 16px; height: 16px; }
-
 .add-btn {
   background: #f59e0b;
   border: none;
@@ -217,87 +312,27 @@ body {
   cursor: pointer;
   display: grid;
   place-items: center;
-  margin-left: 2px;
 }
 
-.content-body {
-  padding: 24px;
-}
+.content-body { padding: 24px; }
 
-/* MOBILE ADAPTATION (< 768px) */
+/* THEME CLAIR */
+.app-layout.light-theme { background-color: #f1f5f9; color: #0f172a; }
+.app-layout.light-theme .navigation-sidebar { background-color: #ffffff; border-right-color: #e2e8f0; }
+.app-layout.light-theme .topbar { background-color: rgba(255, 255, 255, 0.9); border-bottom-color: #e2e8f0; }
+.app-layout.light-theme .nav-item { color: #64748b; }
+.app-layout.light-theme .user-badge, .app-layout.light-theme .currency-badge { background: #f8fafc; border-color: #cbd5e1; }
+
 @media (max-width: 768px) {
   .navigation-sidebar {
-    width: 100vw;
-    height: 66px;
-    top: auto;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    flex-direction: row;
-    padding: 0 10px;
-    border-right: none;
+    width: 100vw; height: 66px; top: auto; bottom: 0; left: 0; right: 0;
+    flex-direction: row; padding: 0 10px; border-right: none;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(13, 17, 23, 0.95);
-    backdrop-filter: blur(20px);
-    z-index: 1000;
+    background: rgba(13, 17, 23, 0.95); z-index: 1000;
   }
-
   .brand-header { display: none; }
-
-  .nav-links {
-    flex-direction: row;
-    width: 100%;
-    justify-content: space-around;
-    align-items: center;
-  }
-
-  .nav-item {
-    flex-direction: column;
-    justify-content: center;
-    padding: 6px;
-    gap: 2px;
-    font-size: 0.68rem;
-    border-radius: 8px;
-    width: auto;
-  }
-
-  .nav-item .icon { font-size: 1.25rem; }
-
-  .main-wrapper {
-    margin-left: 0;
-    padding-bottom: 70px;
-  }
-
-  .topbar {
-    padding: 0 14px;
-  }
-
-  .user-badge-mobile {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .user-badge-mobile .avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: 2px solid #f59e0b;
-  }
-
-  .user-badge-mobile .user-info {
-    display: flex;
-    flex-direction: column;
-    font-size: 0.75rem;
-  }
-
-  .user-badge-mobile small {
-    color: #94a3b8;
-    font-size: 0.65rem;
-  }
-
-  .content-body {
-    padding: 14px;
-  }
+  .nav-links { flex-direction: row; width: 100%; justify-content: space-around; align-items: center; }
+  .nav-item { flex-direction: column; justify-content: center; padding: 6px; gap: 2px; font-size: 0.68rem; width: auto; }
+  .main-wrapper { margin-left: 0; padding-bottom: 70px; }
 }
 </style>

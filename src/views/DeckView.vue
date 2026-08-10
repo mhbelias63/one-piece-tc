@@ -12,16 +12,10 @@
                     <input v-model="searchDecks" type="text" placeholder="Rechercher un deck..." class="search-input" />
                 </div>
 
-                <!-- BOUTON SÉLECTIONNER / ANNULER -->
-                <button 
-                    class="secondary-btn" 
-                    type="button" 
-                    @click="toggleSelectionMode"
-                >
+                <button class="secondary-btn" type="button" @click="toggleSelectionMode">
                     {{ isSelectionMode ? 'Annuler' : 'Sélectionner' }}
                 </button>
 
-                <!-- BOUTON SUPPRIMER LA SÉLECTION (Visible si mode sélection actif) -->
                 <button 
                     v-if="isSelectionMode" 
                     class="delete-btn" 
@@ -32,7 +26,6 @@
                     Supprimer ({{ selectedDeckIds.length }})
                 </button>
 
-                <!-- BOUTON CRÉER UN DECK -->
                 <button v-else class="primary-btn" type="button" @click="showCreateModal = true">Créer un deck</button>
             </div>
         </header>
@@ -47,7 +40,6 @@
                     :class="{ 'selectable': isSelectionMode, 'selected': selectedDeckIds.includes(deck.id) }"
                     @click="handleDeckClick(deck)"
                 >
-                    <!-- CASE À COCHER EN MODE SÉLECTION -->
                     <div v-if="isSelectionMode" class="checkbox-badge">
                         <input 
                             type="checkbox" 
@@ -148,24 +140,21 @@
             </div>
         </section>
 
-        <!-- MODALE CRÉATION -->
+        <!-- MODALES -->
         <CreateDeckModal v-if="showCreateModal" title="Nouveau deck"
             description="Donne un nom à ton deck et commence l’édition." placeholder="Nom du deck" confirmText="Créer"
             @close="showCreateModal = false" @confirm="createDeck" />
 
-        <!-- MODALE SUPPRESSION UNIQUE -->
         <CreateDeckModal v-if="deckToDelete" title="Supprimer le deck"
             :description="`Es-tu sûr de vouloir supprimer '${deckToDelete.name}' ?`" :isInput="false" :isDanger="true"
             cancelText="Non, annuler" confirmText="Oui, supprimer" @close="deckToDelete = null"
             @confirm="deleteDeckConfirmed" />
 
-        <!-- MODALE SUPPRESSION MULTIPLE -->
         <CreateDeckModal v-if="showBatchDeleteModal" title="Suppression multiple"
             :description="`Es-tu sûr de vouloir supprimer définitivement ces ${selectedDeckIds.length} decks ?`" :isInput="false" :isDanger="true"
             cancelText="Annuler" confirmText="Oui, tout supprimer" @close="showBatchDeleteModal = false"
             @confirm="deleteSelectedDecks" />
 
-        <!-- MODALE DÉTAILS CARTE -->
         <DeckCardModal v-if="selectedModalCard" :card="selectedModalCard" :alternatives="allAlternativeSkins"
             :count="cardCount(selectedModalCard)" :isLeader="isLeaderCard(selectedModalCard)"
             :isDisabled="isCardDisabled(selectedModalCard)" @close="selectedModalCard = null" @add="addCardFromModal" />
@@ -194,7 +183,6 @@ const editingDeckId = ref(null)
 const selectedModalCard = ref(null)
 const deckToDelete = ref(null)
 
-// GESTION DU MODE SÉLECTION MULTIPLE
 const isSelectionMode = ref(false)
 const selectedDeckIds = ref([])
 const showBatchDeleteModal = ref(false)
@@ -809,7 +797,7 @@ onMounted(() => {
     margin-bottom: 14px;
 }
 
-/* GRILLE DU CATALOGUE */
+/* GRILLE DU CATALOGUE PC */
 .card-catalog-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
@@ -822,7 +810,9 @@ onMounted(() => {
 /* MOBILES (< 768px) */
 @media (max-width: 768px) {
     .deck-page {
-        padding: 8px 4px 80px 4px;
+        padding: 8px 4px 80px 4px !important;
+        width: 100% !important;
+        overflow-x: hidden !important;
     }
 
     .deck-hero {
@@ -832,7 +822,7 @@ onMounted(() => {
     }
 
     .deck-hero h1 {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
     }
 
     .hero-copy {
@@ -841,16 +831,13 @@ onMounted(() => {
 
     .search-actions {
         width: 100%;
-        justify-content: space-between;
+        display: flex;
+        gap: 6px;
     }
 
     .deck-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 8px;
-    }
-
-    .deck-card-empty {
-        min-height: 140px;
     }
 
     .editor-body {
@@ -862,13 +849,19 @@ onMounted(() => {
     .catalog-panel {
         padding: 10px;
         border-radius: 14px;
+        width: 100%;
+        box-sizing: border-box;
     }
 
-    /* FIXE SYMÉTRIE DU CATALOGUE ( EXACTEMENT 2 COLONNES ÉGALES ) */
+    /* CATALOGUE : 3 COLONNES COMPACTES PARFAITES SUR MOBILE */
     .card-catalog-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 8px !important;
-        max-height: 60vh; /* Permet au catalogue de descendre proprement */
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 6px !important;
+        max-height: 65vh !important;
+        width: 100% !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
     }
 }
 </style>

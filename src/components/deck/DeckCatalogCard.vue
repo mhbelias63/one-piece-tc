@@ -29,13 +29,12 @@ defineEmits(['click'])
 
 <style scoped>
 .catalog-card {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 12px;
-  padding: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 4px;
   cursor: pointer;
   position: relative;
-  transition: transform 0.2s ease;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -44,8 +43,7 @@ defineEmits(['click'])
 }
 
 .catalog-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(245,158,11,0.4);
+  border-color: rgba(245, 158, 11, 0.5);
 }
 
 .catalog-card.disabled {
@@ -56,19 +54,17 @@ defineEmits(['click'])
 .catalog-art {
   width: 100%;
   aspect-ratio: 0.71;
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
-  margin-bottom: 6px;
-  background: rgba(0, 0, 0, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  margin-bottom: 4px;
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .catalog-art img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
+  display: block;
 }
 
 .placeholder-art {
@@ -76,6 +72,7 @@ defineEmits(['click'])
   place-items: center;
   height: 100%;
   color: #94a3b8;
+  font-size: 0.8rem;
 }
 
 .catalog-info {
@@ -85,39 +82,40 @@ defineEmits(['click'])
 
 .catalog-info strong {
   display: block;
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   color: #f8fafc;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.2;
 }
 
 .catalog-info span {
   color: #94a3b8;
-  font-size: 0.68rem;
+  font-size: 0.6rem;
 }
 
 .leader-tag {
   position: absolute;
-  top: 6px;
-  left: 6px;
-  background: rgba(245,158,11,0.9);
+  top: 4px;
+  left: 4px;
+  background: rgba(245, 158, 11, 0.95);
   color: #111827;
   font-weight: 800;
-  padding: 2px 5px;
+  padding: 1px 4px;
   border-radius: 4px;
-  font-size: 0.6rem;
+  font-size: 0.55rem;
 }
 
 .card-count {
   position: absolute;
-  bottom: 6px;
-  right: 6px;
+  bottom: 4px;
+  right: 4px;
   background: #f59e0b;
   color: #111827;
   font-weight: 800;
   border-radius: 999px;
-  padding: 1px 6px;
-  font-size: 0.7rem;
+  padding: 1px 5px;
+  font-size: 0.65rem;
 }
 </style>

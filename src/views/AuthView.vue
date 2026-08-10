@@ -1,7 +1,7 @@
 <template>
   <div class="auth-fullscreen">
     <main class="auth-container">
-      <!-- 1. COLONNE GAUCHE : MARQUE / LOGO -->
+      <!-- 1. COLONNE GAUCHE : MARQUE / LOGO (PC uniquement) -->
       <section class="brand-side">
         <div class="brand-content">
           <div class="logo-wrapper">
@@ -17,6 +17,11 @@
       <!-- 2. COLONNE DROITE : FORMULAIRE -->
       <section class="form-side">
         <div class="auth-card">
+          <!-- LOGO VISIBLE EN MOBILE UNIQUEMENT -->
+          <div class="mobile-logo-header">
+            <img src="/icon-title.png" alt="ONE PIECE Treasure Cards Logo" class="mobile-brand-logo" />
+          </div>
+
           <div class="card-header">
             <h2>{{ isSignUp ? 'Créer un compte' : 'Connexion' }}</h2>
             <p>{{ isSignUp ? 'Rejoins l’équipage en quelques secondes' : 'Rentre tes identifiants pour continuer' }}</p>
@@ -125,7 +130,6 @@ async function handleSubmit() {
     if (error) {
       alert(`Erreur de connexion : ${error.message}`)
     } else {
-      // REDIRECTION DIRECTE VERS LA COLLECTION APRES CONNEXION
       await router.push('/cards')
     }
   }
@@ -153,7 +157,7 @@ async function handleSubmit() {
   min-height: calc(100vh - 80px);
 }
 
-/* COLONNE GAUCHE AVEC ARRIÈRE-PLAN DYNAMIQUE */
+/* COLONNE GAUCHE AVEC ARRIÈRE-PLAN DYNAMIQUE (PC) */
 .brand-side {
   position: relative;
   background: linear-gradient(135deg, rgba(15, 23, 42, 0.88) 0%, rgba(11, 15, 25, 0.75) 100%),
@@ -206,11 +210,17 @@ async function handleSubmit() {
 
 .auth-card {
   width: min(420px, 100%);
-  background: #111827;
+  background: rgba(17, 24, 39, 0.92);
+  backdrop-filter: blur(12px);
   border: 1px solid #273447;
   border-radius: 24px;
   padding: 40px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* Masqué par défaut sur PC */
+.mobile-logo-header {
+  display: none;
 }
 
 .card-header {
@@ -306,7 +316,8 @@ async function handleSubmit() {
 }
 
 .auth-disclaimer-footer {
-  background: #070a12;
+  background: rgba(7, 10, 18, 0.95);
+  backdrop-filter: blur(8px);
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   padding: 16px 24px;
   text-align: center;
@@ -324,6 +335,7 @@ async function handleSubmit() {
   color: #94a3b8;
 }
 
+/* MODIFICATIONS MOBILE (< 900px) */
 @media (max-width: 900px) {
   .auth-container {
     grid-template-columns: 1fr;
@@ -333,8 +345,29 @@ async function handleSubmit() {
     display: none;
   }
 
+  /* Image de fond sur mobile */
   .form-side {
-    padding: 20px;
+    padding: 24px 16px;
+    background: linear-gradient(135deg, rgba(11, 15, 25, 0.85) 0%, rgba(15, 23, 42, 0.9) 100%),
+                url('/bg_auth.png') center/cover no-repeat;
+  }
+
+  /* Affichage du logo sur mobile */
+  .mobile-logo-header {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .mobile-brand-logo {
+    max-width: 220px;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+  }
+
+  .auth-card {
+    padding: 28px 20px;
   }
 }
 </style>

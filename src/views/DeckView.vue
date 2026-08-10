@@ -812,21 +812,10 @@ onMounted(() => {
     .deck-page {
         padding: 8px 4px 80px 4px !important;
         width: 100% !important;
-        overflow-x: hidden !important;
-    }
-
-    .deck-hero {
-        flex-direction: column;
-        gap: 10px;
-        margin-bottom: 14px;
     }
 
     .deck-hero h1 {
         font-size: 1.4rem;
-    }
-
-    .hero-copy {
-        font-size: 0.8rem;
     }
 
     .search-actions {
@@ -847,18 +836,17 @@ onMounted(() => {
 
     .deck-current-panel,
     .catalog-panel {
-        padding: 10px;
+        padding: 8px;
         border-radius: 14px;
         width: 100%;
         box-sizing: border-box;
     }
 
-    /* CATALOGUE : 3 COLONNES COMPACTES PARFAITES SUR MOBILE */
+    /* CATALOGUE FORCE EN 3 COLONNES SUR MOBILE */
     .card-catalog-grid {
         display: grid !important;
-        grid-template-columns: repeat(3, 1fr) !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
         gap: 6px !important;
-        max-height: 65vh !important;
         width: 100% !important;
         padding: 0 !important;
         box-sizing: border-box !important;

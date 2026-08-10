@@ -319,16 +319,17 @@ async function handleSubmit() {
   background: rgba(7, 10, 18, 0.95);
   backdrop-filter: blur(8px);
   border-top: 1px solid rgba(255, 255, 255, 0.05);
-  padding: 16px 24px;
+  padding: 8px 16px;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .auth-disclaimer-footer p {
   max-width: 1100px;
   margin: 0 auto;
   color: #64748b;
-  font-size: 0.75rem;
-  line-height: 1.5;
+  font-size: 0.65rem;
+  line-height: 1.3;
 }
 
 .auth-disclaimer-footer strong {
@@ -337,37 +338,50 @@ async function handleSubmit() {
 
 /* MODIFICATIONS MOBILE (< 900px) */
 @media (max-width: 900px) {
+  .auth-fullscreen {
+    position: relative;
+    min-height: 100vh;
+    height: auto;
+  }
+
   .auth-container {
     grid-template-columns: 1fr;
+    min-height: auto;
   }
 
   .brand-side {
     display: none;
   }
 
-  /* Image de fond sur mobile */
   .form-side {
-    padding: 24px 16px;
+    padding: 20px 16px 30px 16px;
     background: linear-gradient(135deg, rgba(11, 15, 25, 0.85) 0%, rgba(15, 23, 42, 0.9) 100%),
                 url('/bg_auth.png') center/cover no-repeat;
   }
 
-  /* Affichage du logo sur mobile */
   .mobile-logo-header {
     display: flex;
     justify-content: center;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
   }
 
   .mobile-brand-logo {
-    max-width: 220px;
+    max-width: 160px;
     width: 100%;
     height: auto;
     object-fit: contain;
   }
 
   .auth-card {
-    padding: 28px 20px;
+    padding: 24px 18px;
+  }
+
+  .auth-disclaimer-footer {
+    padding: 10px 12px;
+  }
+
+  .auth-disclaimer-footer p {
+    font-size: 0.6rem;
   }
 }
 </style>

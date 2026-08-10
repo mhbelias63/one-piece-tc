@@ -1,5 +1,9 @@
 <template>
-  <div class="app-layout">
+  <!-- Si on est sur /auth, on affiche uniquement la vue sans le layout global -->
+  <router-view v-if="isAuthPage" />
+
+  <!-- Sinon, on affiche l'application complète avec la navigation -->
+  <div v-else class="app-layout">
     <!-- SIDEBAR PC / BARRE BASSE MOBILE -->
     <aside class="navigation-sidebar">
       <div class="brand-header">
@@ -62,6 +66,14 @@
     </div>
   </div>
 </template>
+
+<script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+const isAuthPage = computed(() => route.path === '/auth')
+</script>
 
 <style>
 * {

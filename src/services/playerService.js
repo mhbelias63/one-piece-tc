@@ -29,7 +29,9 @@ export async function fetchUserDecks() {
     console.error('Erreur chargement decks :', error)
     return []
   }
-  return data
+
+  // Si leader_id existe mais que le leader n'est pas hydraté, on adapte la structure
+  return data || []
 }
 
 // 3. Sauvegarder/mettre à jour un deck sur Supabase
@@ -38,21 +40,17 @@ export async function saveUserDeck(deck) {
   if (!user) return null
 
   const payload = {
+    id: deck.id, // On conserve STRICTEMENT l'ID unique du deck
     user_id: user.id,
     name: deck.name,
-    leader_id: deck.leader?.id || null,
+    leader: deck.leader, // On enregistre le leader
     cards: deck.cards,
     updated_at: new Date().toISOString()
   }
 
-  // Si le deck a déjà un ID Supabase, on fait un update, sinon un insert
-  if (deck.id && !deck.id.includes('-')) {
-    payload.id = deck.id
-  }
-
   const { data, error } = await supabase
     .from('user_decks')
-    .upsert(payload)
+    .upsert(payload, { onConflict: 'id' })
     .select()
     .single()
 
@@ -60,12 +58,11 @@ export async function saveUserDeck(deck) {
   return data
 }
 
-// 4. Ajouter une carte à la collection du joueur (ex: ouverture de booster)
+// 4. Ajouter une carte à la collection du joueur
 export async function addCardToCollection(cardId, count = 1) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
 
-  // On vérifie si la carte est déjà possédée
   const { data: existing } = await supabase
     .from('user_cards')
     .select('count')

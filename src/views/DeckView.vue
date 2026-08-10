@@ -124,7 +124,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { supabase } from '../supabase'
 import { fetchUserDecks, saveUserDeck } from '../services/playerService'
 
@@ -164,7 +164,6 @@ function getBaseCardId(card) {
     return String(idStr).split(/_ALT/i)[0].split(/-ALT/i)[0]
 }
 
-// Regroupe les cartes du deck actif par leur identifiant de base (baseId)
 const groupedDeckCards = computed(() => {
     if (!activeDeck.value || !activeDeck.value.cards) return []
 
@@ -187,7 +186,6 @@ const groupedDeckCards = computed(() => {
     return Object.values(groups)
 })
 
-// Compte TOUTES les versions (originales + alternatives) de la même carte dans le deck
 function cardCount(card) {
     if (!activeDeck.value || !card || !activeDeck.value.cards) return 0
     const targetBaseId = getBaseCardId(card)
@@ -211,9 +209,9 @@ function isCardDisabled(card) {
     return cardCount(card) >= 4
 }
 
-async function selectCard(card) {
+function selectCard(card) {
     if (!activeDeck.value || isCardDisabled(card)) return
-    const targetDeck = decks.value.find(d => d.id === editingDeckId.value)
+    const targetDeck = activeDeck.value
     if (!targetDeck) return
 
     if (!targetDeck.cards) targetDeck.cards = []
@@ -222,8 +220,7 @@ async function selectCard(card) {
         targetDeck.leader = card
         targetDeck.cards = targetDeck.cards.filter(item => isColorCompatible(item.card || item, card))
         showLeaderSelection.value = false
-        await saveUserDeck(targetDeck)
-        await persistDecks()
+        saveActiveDeck()
         return
     }
 
@@ -234,7 +231,6 @@ async function selectCard(card) {
 
     if (currentBaseCount >= 4 || totalCards >= 50) return
 
-    // Cherche si cette déclinaison EXACTE d'image existe déjà
     const existingItem = targetDeck.cards.find(entry => {
         const entryCard = entry.card || entry
         return entryCard.id === card.id
@@ -246,8 +242,7 @@ async function selectCard(card) {
         targetDeck.cards.push({ card, count: 1 })
     }
 
-    await saveUserDeck(targetDeck)
-    await persistDecks()
+    saveActiveDeck()
 }
 
 function removeLastVersionOfGroup(group) {
@@ -257,8 +252,8 @@ function removeLastVersionOfGroup(group) {
     removeCard(targetCard)
 }
 
-async function removeCard(card) {
-    const targetDeck = decks.value.find(d => d.id === editingDeckId.value)
+function removeCard(card) {
+    const targetDeck = activeDeck.value
     if (!targetDeck || !targetDeck.cards) return
 
     const index = targetDeck.cards.findIndex(entry => {
@@ -274,8 +269,13 @@ async function removeCard(card) {
         targetDeck.cards.splice(index, 1)
     }
 
-    await saveUserDeck(targetDeck)
-    await persistDecks()
+    saveActiveDeck()
+}
+
+async function saveActiveDeck() {
+    if (!activeDeck.value) return
+    await saveUserDeck(activeDeck.value)
+    persistLocalDecks()
 }
 
 function getCardColors(card) {
@@ -321,18 +321,16 @@ function deckCardCount(deck) {
     return deck.cards.reduce((sum, item) => sum + (item.count || 1), 0)
 }
 
-async function persistDecks() {
+function persistLocalDecks() {
     window.localStorage.setItem('onepiece-decks', JSON.stringify(decks.value))
 }
 
 async function loadDecks() {
     loading.value = true
-    // Récupération depuis Supabase via le helper playerService
     const remoteDecks = await fetchUserDecks()
     if (remoteDecks && remoteDecks.length > 0) {
         decks.value = remoteDecks
     } else {
-        // En secours si l'utilisateur est hors-ligne
         const raw = window.localStorage.getItem('onepiece-decks')
         if (raw) {
             try { decks.value = JSON.parse(raw) } catch { decks.value = [] }
@@ -348,11 +346,10 @@ async function deleteDeckConfirmed() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-        // Suppression directe dans la table user_decks
         await supabase.from('user_decks').delete().eq('id', idToDelete).eq('user_id', user.id)
     }
 
-    await persistDecks()
+    persistLocalDecks()
     deckToDelete.value = null
 }
 
@@ -361,10 +358,14 @@ function openEditor(deckId) {
     showLeaderSelection.value = !activeDeck.value?.leader
 }
 
-function exitEditor() {
+async function exitEditor() {
+    if (activeDeck.value) {
+        await saveActiveDeck()
+    }
     editingDeckId.value = null
     showLeaderSelection.value = false
     searchCatalog.value = ''
+    await loadDecks() // Recharge proprement la liste pour éviter tout doublon
 }
 
 async function createDeck(name) {
@@ -376,12 +377,10 @@ async function createDeck(name) {
     }
     decks.value.push(newDeck)
     await saveUserDeck(newDeck)
-    await persistDecks()
+    persistLocalDecks()
     showCreateModal.value = false
     openEditor(newDeck.id)
 }
-
-
 
 function isLeaderCard(card) {
     return !!(card?.type?.toLowerCase().includes('leader') || card?.category?.toLowerCase().includes('leader'))
@@ -414,8 +413,6 @@ onMounted(() => {
     loadDecks()
     fetchCards()
 })
-
-watch(decks, persistDecks, { deep: true })
 </script>
 
 <style scoped>

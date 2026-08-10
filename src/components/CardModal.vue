@@ -96,7 +96,7 @@
                 <div class="owned-section">
                     <span class="footer-label">Possédés</span>
                     <div class="owned-count">
-                        <span>{{ card.owned_count || 4 }} / 4</span>
+                        <span>{{ totalOwned }}</span>
                     </div>
                 </div>
 
@@ -107,7 +107,7 @@
                 </div>
 
                 <div class="action-section">
-                    <button class="add-deck-btn" @click="openDeckSelection">
+                    <button class="add-deck-btn" @click="openDeckSelection" :disabled="totalOwned === 0">
                         Ajouter au deck
                     </button>
                 </div>
@@ -167,7 +167,11 @@ import { fetchUserDecks, saveUserDeck } from '../services/playerService'
 import CardZoomModal from './CardZoomModal.vue'
 
 const props = defineProps({
-    card: Object
+    card: Object,
+    ownedCount: {
+        type: Number,
+        default: 0
+    }
 })
 const emit = defineEmits(['close', 'add-to-deck'])
 const router = useRouter()
@@ -178,6 +182,10 @@ const showZoom = ref(false)
 const showDeckPicker = ref(false)
 const userDecks = ref([])
 
+const totalOwned = computed(() => {
+    return props.ownedCount ?? props.card?.owned_count ?? 0
+})
+
 const isAlternativeCard = computed(() => {
     if (!props.card?.id) return false
     const id = props.card.id.toLowerCase()
@@ -185,8 +193,10 @@ const isAlternativeCard = computed(() => {
 })
 
 const handleIncrease = () => {
-    const max = props.card?.owned_count || 4
-    if (quantity.value < max) quantity.value++
+    const maxAllowed = Math.min(totalOwned.value, 4)
+    if (quantity.value < maxAllowed) {
+        quantity.value++
+    }
 }
 
 const handleDecrease = () => {
@@ -209,14 +219,12 @@ function getDeckCardsCount(deck) {
     return deck.cards.reduce((sum, item) => sum + (item.count || 1), 0)
 }
 
-// Extraction de l'ID de base
 function getBaseCardId(cardOrId) {
     const id = typeof cardOrId === 'string' ? cardOrId : cardOrId?.id
     if (!id) return ''
     return String(id).split(/_ALT/i)[0].split(/-ALT/i)[0]
 }
 
-// Compte la présence cumulée d'une carte dans un deck donné
 function getCardCountInDeck(deck, cardId) {
     if (!deck || !deck.cards) return 0
     const targetBaseId = getBaseCardId(cardId)
@@ -233,8 +241,6 @@ function getCardCountInDeck(deck, cardId) {
 function isDeckBlocked(deck) {
     const totalCount = getDeckCardsCount(deck)
     const cardBaseQty = getCardCountInDeck(deck, props.card.id)
-    
-    // Bloqué si le total dépasse 50 OU si le quota cumulé (original + alt) dépasse 4
     return (totalCount + quantity.value > 50) || (cardBaseQty + quantity.value > 4)
 }
 
@@ -268,7 +274,6 @@ async function addCardToDeck(deck) {
         }
     }
 
-    // Ajout fluide sans alerte pop-up
     emit('add-to-deck', { card: props.card, quantity: quantity.value, deck })
     showDeckPicker.value = false
     emit('close')
@@ -690,10 +695,10 @@ function hasEffect(effectText) {
     transition: transform 0.1s, opacity 0.2s;
 }
 
-.add-deck-btn:hover { opacity: 0.95; }
-.add-deck-btn:active { transform: scale(0.97); }
+.add-deck-btn:hover:not(:disabled) { opacity: 0.95; }
+.add-deck-btn:active:not(:disabled) { transform: scale(0.97); }
+.add-deck-btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
 
-/* MODAL SELECTION DU DECK */
 .picker-overlay {
     position: fixed;
     inset: 0;

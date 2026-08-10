@@ -6,14 +6,19 @@
         <div>
           <h1>MA COLLECTION</h1>
           <p>
-            {{ selectedSet === 'ALL' ? 'Toutes les cartes' : `Cartes du set ${selectedSet}` }}
-            <span>• {{ filteredCards.length }} cartes filtrées</span>
+            {{ viewMode === 'sets' ? 'Progression par extension' : (selectedSet === 'ALL' ? 'Toutes les cartes' : `Cartes du set ${selectedSet}`) }}
+            <span>• {{ viewMode === 'sets' ? `${allSetsStats.length} extensions` : `${filteredCards.length} cartes filtrées` }}</span>
           </p>
         </div>
 
         <div class="progress-card">
           <div class="progress-copy">
-            <strong>Progression de la collection</strong>
+            <div class="progress-title-row">
+              <strong>Progression globale</strong>
+              <button class="toggle-view-btn" @click="viewMode = viewMode === 'grid' ? 'sets' : 'grid'">
+                {{ viewMode === 'grid' ? 'Voir par set' : 'Voir toutes les cartes' }}
+              </button>
+            </div>
             <span>{{ collectionLabel }}</span>
           </div>
           <div class="progress-track">
@@ -23,97 +28,147 @@
         </div>
       </div>
 
-      <!-- BARRE DE FILTRES PRINCIPALE -->
-      <div class="filter-bar">
-        <div class="search-box">
-          <span class="search-icon">⌕</span>
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Rechercher une carte par nom, effet ou trait..."
-            class="search-input"
-          />
-          <button v-if="searchQuery" @click="searchQuery = ''" class="clear-search">×</button>
-        </div>
+      <!-- VUE 1 : PROGRESSION PAR SETS -->
+      <div v-if="viewMode === 'sets'" class="sets-progress-container">
+        <div v-if="loadingSets" class="loading">Calcul de la progression des sets...</div>
+        
+        <div v-else class="sets-grid">
+          <div 
+            v-for="setItem in allSetsStats" 
+            :key="setItem.setId" 
+            class="set-progress-card"
+            @click="filterBySet(setItem.setId)"
+          >
+            <div class="set-card-header">
+              <h3>{{ setItem.setId }}</h3>
+              <span class="set-count-badge">{{ setItem.owned }} / {{ setItem.total }} cartes</span>
+            </div>
 
-        <select v-model="sortMode" class="select-field">
-          <option value="id">Trier par numéro</option>
-          <option value="name">Trier par nom</option>
-          <option value="rarity">Trier par rareté</option>
-          <option value="cost">Trier par coût</option>
-        </select>
+            <div class="progress-track">
+              <div 
+                class="progress-fill" 
+                :style="{ width: `${setItem.percent}%` }"
+              ></div>
+            </div>
 
-        <div class="filter-group">
-          <button @click="selectedType = 'all'" :class="['filter-btn', { active: selectedType === 'all' }]">Tous</button>
-          <button @click="selectedType = 'standard'" :class="['filter-btn', { active: selectedType === 'standard' }]">Classiques</button>
-          <button @click="selectedType = 'parallel'" :class="['filter-btn', { active: selectedType === 'parallel' }]">Alternatives</button>
-        </div>
-      </div>
-
-      <!-- FILTRES SECONDAIRES -->
-      <div class="secondary-filters">
-        <div class="filter-pill-group">
-          <button @click="selectedColor = ''" :class="['chip', { active: selectedColor === '' }]">Toutes les couleurs</button>
-          <button @click="selectedColor = 'red'" :class="['chip', { active: selectedColor === 'red' }]">Rouge</button>
-          <button @click="selectedColor = 'blue'" :class="['chip', { active: selectedColor === 'blue' }]">Bleu</button>
-          <button @click="selectedColor = 'green'" :class="['chip', { active: selectedColor === 'green' }]">Vert</button>
-          <button @click="selectedColor = 'purple'" :class="['chip', { active: selectedColor === 'purple' }]">Violet</button>
-        </div>
-
-        <div class="filter-pill-group">
-          <button @click="selectedRarity = ''" :class="['chip', { active: selectedRarity === '' }]">Toutes les raretés</button>
-          <button @click="selectedRarity = 'SR'" :class="['chip', { active: selectedRarity === 'SR' }]">SR</button>
-          <button @click="selectedRarity = 'R'" :class="['chip', { active: selectedRarity === 'R' }]">R</button>
-          <button @click="selectedRarity = 'UC'" :class="['chip', { active: selectedRarity === 'UC' }]">UC</button>
-          <button @click="selectedRarity = 'C'" :class="['chip', { active: selectedRarity === 'C' }]">C</button>
-        </div>
-      </div>
-
-      <!-- ÉTATS DE CHARGEMENT / VIDE -->
-      <div v-if="loading" class="loading">Chargement de la collection...</div>
-
-      <div v-else-if="displayedCards.length === 0" class="empty-state">
-        Aucune carte ne correspond à tes filtres.
-      </div>
-
-      <!-- GRILLE DES CARTES DE COLLECTION -->
-      <div v-else class="card-grid">
-        <article
-          v-for="card in displayedCards"
-          :key="card.id"
-          class="card-item"
-          @click="openCardModal(card)"
-        >
-          <div class="card-art">
-            <img 
-              v-if="card.image_url" 
-              :src="card.image_url" 
-              :alt="card.name"
-              @error="handleImageError"
-            />
-            <div class="placeholder-art" :style="{ display: card.image_url ? 'none' : 'grid' }">?</div>
-          </div>
-
-          <div class="card-footer">
-            <h3 class="card-title-centered">{{ card.name }}</h3>
-            
-            <div class="card-meta-row">
-              <span class="card-code">{{ card.id }}</span>
-              <span class="rarity-tag" :style="{ color: getRarityColor(card.rarity) }">
-                {{ card.rarity || 'N/A' }}
-              </span>
+            <div class="set-card-footer">
+              <small>{{ setItem.percent }}% complété</small>
+              <span class="open-link">Voir les cartes →</span>
             </div>
           </div>
-        </article>
+        </div>
       </div>
 
-      <div v-if="filteredCards.length > displayedCards.length" class="load-more-row">
-        <button class="load-more-btn" @click="visibleCount += 12">Charger plus de cartes</button>
-        <span>Affichage de {{ displayedCards.length }} sur {{ filteredCards.length }} cartes</span>
-      </div>
+      <!-- VUE 2 : CATALOGUE DE CARTES -->
+      <template v-else>
+        <!-- FILTRES PRINCIPAUX -->
+        <div class="filter-bar">
+          <div class="search-box">
+            <span class="search-icon">⌕</span>
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Rechercher une carte par nom, effet ou trait..."
+              class="search-input"
+            />
+            <button v-if="searchQuery" @click="searchQuery = ''" class="clear-search">×</button>
+          </div>
+
+          <select v-model="sortMode" class="select-field">
+            <option value="id">Trier par numéro</option>
+            <option value="name">Trier par nom</option>
+            <option value="rarity">Trier par rareté</option>
+            <option value="cost">Trier par coût</option>
+          </select>
+
+          <!-- FILTRE PAR TYPE -->
+          <div class="filter-group">
+            <button @click="selectedType = 'all'" :class="['filter-btn', { active: selectedType === 'all' }]">Tous les styles</button>
+            <button @click="selectedType = 'standard'" :class="['filter-btn', { active: selectedType === 'standard' }]">Classiques</button>
+            <button @click="selectedType = 'parallel'" :class="['filter-btn', { active: selectedType === 'parallel' }]">Alternatives</button>
+          </div>
+        </div>
+
+        <!-- FILTRES SECONDAIRES -->
+        <div class="secondary-filters">
+          <!-- FILTRE DE POSSESSION -->
+          <div class="filter-pill-group">
+            <button @click="selectedOwnership = 'all'" :class="['chip', { active: selectedOwnership === 'all' }]">Toutes</button>
+            <button @click="selectedOwnership = 'owned'" :class="['chip', 'highlight-owned', { active: selectedOwnership === 'owned' }]">Possédées</button>
+            <button @click="selectedOwnership = 'unowned'" :class="['chip', { active: selectedOwnership === 'unowned' }]">Non possédées</button>
+          </div>
+
+          <!-- MULTI-SÉLECTION COULEURS -->
+          <div class="filter-pill-group">
+            <button @click="resetColors" :class="['chip', { active: selectedColors.length === 0 }]">Toutes couleurs</button>
+            <button @click="toggleColor('red')" :class="['chip', { active: selectedColors.includes('red') }]">Rouge</button>
+            <button @click="toggleColor('blue')" :class="['chip', { active: selectedColors.includes('blue') }]">Bleu</button>
+            <button @click="toggleColor('green')" :class="['chip', { active: selectedColors.includes('green') }]">Vert</button>
+            <button @click="toggleColor('purple')" :class="['chip', { active: selectedColors.includes('purple') }]">Violet</button>
+            <button @click="toggleColor('yellow')" :class="['chip', { active: selectedColors.includes('yellow') }]">Jaune</button>
+            <button @click="toggleColor('black')" :class="['chip', { active: selectedColors.includes('black') }]">Noir</button>
+          </div>
+
+          <!-- MULTI-SÉLECTION RARETÉS -->
+          <div class="filter-pill-group">
+            <button @click="resetRarities" :class="['chip', { active: selectedRarities.length === 0 }]">Toutes raretés</button>
+            <button @click="toggleRarity('SEC')" :class="['chip', { active: selectedRarities.includes('SEC') }]">SEC</button>
+            <button @click="toggleRarity('SR')" :class="['chip', { active: selectedRarities.includes('SR') }]">SR</button>
+            <button @click="toggleRarity('R')" :class="['chip', { active: selectedRarities.includes('R') }]">R</button>
+            <button @click="toggleRarity('UC')" :class="['chip', { active: selectedRarities.includes('UC') }]">UC</button>
+            <button @click="toggleRarity('C')" :class="['chip', { active: selectedRarities.includes('C') }]">C</button>
+            <button @click="toggleRarity('L')" :class="['chip', { active: selectedRarities.includes('L') }]">L</button>
+          </div>
+        </div>
+
+        <div v-if="loading" class="loading">Chargement de la collection...</div>
+
+        <div v-else-if="displayedCards.length === 0" class="empty-state">
+          Aucune carte ne correspond à tes filtres.
+        </div>
+
+        <!-- GRILLE DES CARTES -->
+        <div v-else class="card-grid">
+          <article
+            v-for="card in displayedCards"
+            :key="card.id"
+            class="card-item"
+            :class="{ 'unowned-card': !ownedCardIds.has(card.id) }"
+            @click="openCardModal(card)"
+          >
+            <div class="card-art">
+              <img 
+                v-if="card.image_url" 
+                :src="card.image_url" 
+                :alt="card.name"
+                @error="handleImageError"
+              />
+              <div class="placeholder-art" :style="{ display: card.image_url ? 'none' : 'grid' }">?</div>
+              <div v-if="!ownedCardIds.has(card.id)" class="unowned-badge">Non possédée</div>
+              <div v-else-if="getOwnedCount(card) > 1" class="owned-count-badge">x{{ getOwnedCount(card) }}</div>
+            </div>
+
+            <div class="card-footer">
+              <h3 class="card-title-centered">{{ card.name }}</h3>
+              
+              <div class="card-meta-row">
+                <span class="card-code">{{ card.id }}</span>
+                <span class="rarity-tag" :style="{ color: getRarityColor(card.rarity) }">
+                  {{ card.rarity || 'N/A' }}
+                </span>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div v-if="filteredCards.length > displayedCards.length" class="load-more-row">
+          <button class="load-more-btn" @click="visibleCount += 12">Charger plus de cartes</button>
+          <span>Affichage de {{ displayedCards.length }} sur {{ filteredCards.length }} cartes</span>
+        </div>
+      </template>
     </div>
 
-    <!-- PANNEAU LATÉRAL (IDENTIQUE À HOMEVIEW) -->
+    <!-- PANNEAU LATÉRAL -->
     <aside class="side-panel">
       <div class="profile-card">
         <div class="avatar">
@@ -172,28 +227,42 @@
       </div>
     </aside>
 
-    <CardModal :card="selectedCard" @close="selectedCard = null" />
+    <CardModal 
+      :card="selectedCard" 
+      :ownedCount="getOwnedCount(selectedCard)"
+      @close="selectedCard = null" 
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../supabase'
 import CardModal from '../components/CardModal.vue'
 
 const route = useRoute()
+const router = useRouter()
 
+const viewMode = ref('grid')
 const cards = ref([])
 const loading = ref(true)
+const loadingSets = ref(false)
 const selectedSet = ref('ALL')
 const selectedCard = ref(null)
 const visibleCount = ref(12)
 
-const selectedType = ref('all')
+const ownedCardIds = ref(new Set())
+const cardQuantities = ref(new Map())
+const totalDbCardCount = ref(0)
+const allSetsStats = ref([])
+
+// NOUVEAUX ÉTATS POUR FILTRES MULTIPLES
+const selectedOwnership = ref('all') // 'all', 'owned', 'unowned'
+const selectedType = ref('all')       // 'all', 'standard', 'parallel'
 const searchQuery = ref('')
-const selectedRarity = ref('')
-const selectedColor = ref('')
+const selectedColors = ref([])       // Tableau pour multi-sélection (ex: ['red', 'purple'])
+const selectedRarities = ref([])     // Tableau pour multi-sélection (ex: ['SR', 'SEC'])
 const sortMode = ref('id')
 
 const friends = [
@@ -210,20 +279,87 @@ const missions = [
   { label: 'Collectionner 3 cartes', count: '2/3', progress: 66 }
 ]
 
-const targetCollectionCount = 500
+// FONCTIONS DE GESTION MULTI-SÉLECTION
+function toggleColor(color) {
+  const index = selectedColors.value.indexOf(color)
+  if (index > -1) {
+    selectedColors.value.splice(index, 1)
+  } else {
+    selectedColors.value.push(color)
+  }
+}
+
+function resetColors() {
+  selectedColors.value = []
+}
+
+function toggleRarity(rarity) {
+  const index = selectedRarities.value.indexOf(rarity)
+  if (index > -1) {
+    selectedRarities.value.splice(index, 1)
+  } else {
+    selectedRarities.value.push(rarity)
+  }
+}
+
+function resetRarities() {
+  selectedRarities.value = []
+}
+
+// CHARGEMENT DE LA BDD
+async function loadUserCollectionFromSupabase() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    ownedCardIds.value = new Set()
+    cardQuantities.value = new Map()
+    return
+  }
+
+  const { data, error } = await supabase
+    .from('user_cards')
+    .select('card_id')
+    .eq('user_id', user.id)
+
+  if (error) {
+    console.error('Erreur chargement user_cards :', error)
+    return
+  }
+
+  const uniqueIds = new Set()
+  const qMap = new Map()
+
+  data.forEach(item => {
+    uniqueIds.add(item.card_id)
+    qMap.set(item.card_id, (qMap.get(item.card_id) || 0) + 1)
+  })
+
+  ownedCardIds.value = uniqueIds
+  cardQuantities.value = qMap
+}
+
+function getOwnedCount(card) {
+  if (!card || !card.id) return 0
+  return cardQuantities.value.get(card.id) || 0
+}
 
 async function fetchCards() {
   loading.value = true
   visibleCount.value = 12
 
-  let query = supabase.from('cards').select('*')
+  const { count, error: countError } = await supabase
+    .from('cards')
+    .select('*', { count: 'exact', head: true })
 
+  if (!countError && count !== null) {
+    totalDbCardCount.value = count
+  }
+
+  let query = supabase.from('cards').select('*')
   if (selectedSet.value && selectedSet.value !== 'ALL') {
-    query = query.eq('set_id', selectedSet.value)
+    query = query.or(`set_id.eq.${selectedSet.value},id.ilike.${selectedSet.value}-%`)
   }
 
   const { data, error } = await query
-
   if (error) {
     console.error('Erreur Supabase :', error)
     cards.value = []
@@ -234,22 +370,70 @@ async function fetchCards() {
   loading.value = false
 }
 
+async function fetchAllSetsStats() {
+  loadingSets.value = true
+  const { data: allCards, error } = await supabase.from('cards').select('id, set_id')
+  
+  if (error || !allCards) {
+    allSetsStats.value = []
+    loadingSets.value = false
+    return
+  }
+
+  const groups = {}
+  allCards.forEach(card => {
+    let sId = card.set_id || 'AUTRE'
+    if (!groups[sId]) groups[sId] = []
+    groups[sId].push(card.id)
+  })
+
+  const stats = Object.keys(groups).sort().map(setId => {
+    const setCardIds = groups[setId]
+    const totalInSet = setCardIds.length
+    const ownedInSet = setCardIds.filter(id => ownedCardIds.value.has(id)).length
+    const percent = totalInSet > 0 ? Math.round((ownedInSet / totalInSet) * 100) : 0
+
+    return { setId, total: totalInSet, owned: ownedInSet, percent }
+  })
+
+  allSetsStats.value = stats
+  loadingSets.value = false
+}
+
+function filterBySet(setId) {
+  viewMode.value = 'grid'
+  router.push({ path: '/cards', query: { set: setId } })
+}
+
+// LOGIQUE DE FILTRAGE CROISÉ
 const filteredCards = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
 
   return cards.value
     .filter(card => {
+      // 1. FILTRE POSSÉDÉE
+      const isOwned = ownedCardIds.value.has(card.id)
+      if (selectedOwnership.value === 'owned' && !isOwned) return false
+      if (selectedOwnership.value === 'unowned' && isOwned) return false
+
+      // 2. FILTRE STYLE (Classique / Alternative)
       const isParallel = card.id?.includes('_ALT_') || card.name?.toLowerCase().includes('(parallel)')
       if (selectedType.value === 'standard' && isParallel) return false
       if (selectedType.value === 'parallel' && !isParallel) return false
 
-      if (selectedRarity.value && card.rarity !== selectedRarity.value) return false
-
-      if (selectedColor.value) {
-        const color = String(card.color || '').toLowerCase()
-        if (!color.includes(selectedColor.value)) return false
+      // 3. MULTI-FILTRE RARETÉ
+      if (selectedRarities.value.length > 0) {
+        if (!selectedRarities.value.includes(card.rarity)) return false
       }
 
+      // 4. MULTI-FILTRE COULEUR
+      if (selectedColors.value.length > 0) {
+        const cardColor = String(card.color || '').toLowerCase()
+        const hasMatchingColor = selectedColors.value.some(c => cardColor.includes(c))
+        if (!hasMatchingColor) return false
+      }
+
+      // 5. RECHERCHE TEXTUELLE
       if (query) {
         const name = (card.name || '').toLowerCase()
         const id = (card.id || '').toLowerCase()
@@ -274,23 +458,18 @@ const filteredCards = computed(() => {
 })
 
 const displayedCards = computed(() => filteredCards.value.slice(0, visibleCount.value))
-const progressPercent = computed(() => Math.min(100, Math.round((cards.value.length / targetCollectionCount) * 100)))
-const collectionLabel = computed(() => `Ma collection : ${cards.value.length} / ${targetCollectionCount} cartes`)
+const totalOwnedCount = computed(() => ownedCardIds.value.size)
+const maxTargetCount = computed(() => totalDbCardCount.value || cards.value.length || 1)
+const progressPercent = computed(() => Math.min(100, Math.round((totalOwnedCount.value / maxTargetCount.value) * 100)))
+const collectionLabel = computed(() => `Ma collection : ${totalOwnedCount.value} / ${maxTargetCount.value} cartes`)
 
 function getRarityColor(rarityCode) {
   if (!rarityCode) return '#9ca3af'
-
   const code = String(rarityCode).trim().toUpperCase()
   const rarityColors = {
-    C: '#9ca3af',
-    UC: '#22c55e',
-    R: '#3b82f6',
-    SR: '#eab308',
-    SEC: '#c084fc',
-    L: '#ef4444',
-    P: '#06b6d4'
+    C: '#9ca3af', UC: '#22c55e', R: '#3b82f6', SR: '#eab308',
+    SEC: '#c084fc', L: '#ef4444', P: '#06b6d4'
   }
-
   return rarityColors[code] || '#eab308'
 }
 
@@ -311,6 +490,12 @@ function openCardModal(card) {
   selectedCard.value = card
 }
 
+watch(viewMode, (newMode) => {
+  if (newMode === 'sets') {
+    fetchAllSetsStats()
+  }
+})
+
 watch(
   () => route.query.set,
   newSet => {
@@ -319,6 +504,10 @@ watch(
   },
   { immediate: true }
 )
+
+onMounted(() => {
+  loadUserCollectionFromSupabase()
+})
 </script>
 
 <style scoped>
@@ -335,7 +524,6 @@ watch(
   gap: 20px;
 }
 
-/* PAGE HEADER */
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -361,29 +549,48 @@ watch(
   border: 1px solid #273447;
   border-radius: 16px;
   padding: 14px 16px;
-  min-width: 280px;
+  min-width: 320px;
 }
 
 .progress-copy {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   color: #f8fafc;
   margin-bottom: 10px;
 }
 
-.progress-copy strong {
-  font-size: 0.9rem;
+.progress-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
 }
 
-.progress-copy span {
-  color: #94a3b8;
-  font-size: 0.8rem;
+.progress-title-row strong { font-size: 0.9rem; }
+
+.toggle-view-btn {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid #f59e0b;
+  color: #f59e0b;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
+
+.toggle-view-btn:hover {
+  background: #f59e0b;
+  color: #111827;
+}
+
+.progress-copy span { color: #94a3b8; font-size: 0.8rem; }
 
 .progress-track {
   width: 100%;
-  height: 6px;
+  height: 8px;
   background: #1e293b;
   border-radius: 999px;
   overflow: hidden;
@@ -392,16 +599,54 @@ watch(
 
 .progress-fill {
   height: 100%;
-  background: #eab308;
+  background: linear-gradient(90deg, #f59e0b, #fb923c);
   border-radius: inherit;
+  transition: width 0.4s ease;
 }
 
-.progress-card small {
-  color: #eab308;
-  font-weight: 700;
+.progress-card small { color: #f59e0b; font-weight: 800; }
+
+.sets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
 }
 
-/* BARRES DE FILTRES */
+.set-progress-card {
+  background: #1b2333;
+  border: 1px solid #273447;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.set-progress-card:hover {
+  transform: translateY(-4px);
+  border-color: #f59e0b;
+}
+
+.set-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.set-card-header h3 { font-size: 1.1rem; font-weight: 900; color: #f8fafc; }
+.set-count-badge { font-size: 0.78rem; color: #94a3b8; font-weight: 700; }
+
+.set-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.set-card-footer small { color: #f59e0b; font-weight: 800; }
+.open-link { font-size: 0.78rem; color: #3b82f6; font-weight: 800; }
+
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
@@ -413,11 +658,7 @@ watch(
   padding: 14px;
 }
 
-.search-box {
-  position: relative;
-  flex: 1;
-  min-width: 260px;
-}
+.search-box { position: relative; flex: 1; min-width: 260px; }
 
 .search-input {
   width: 100%;
@@ -429,18 +670,8 @@ watch(
   font-size: 0.9rem;
 }
 
-.search-input:focus {
-  outline: none;
-  border-color: #eab308;
-}
-
-.search-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #64748b;
-}
+.search-input:focus { outline: none; border-color: #eab308; }
+.search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #64748b; }
 
 .clear-search {
   position: absolute;
@@ -464,15 +695,9 @@ watch(
   font-size: 0.85rem;
 }
 
-.filter-group,
-.filter-pill-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
+.filter-group, .filter-pill-group { display: flex; flex-wrap: wrap; gap: 8px; }
 
-.filter-btn,
-.chip {
+.filter-btn, .chip {
   border: 1px solid #273447;
   background: #0d111a;
   color: #cbd5e1;
@@ -484,21 +709,21 @@ watch(
   transition: all 0.2s ease;
 }
 
-.filter-btn.active,
-.chip.active {
-  background: #eab308;
+.filter-btn.active, .chip.active {
+  background: #f59e0b;
   color: #111827;
-  border-color: #eab308;
+  border-color: #f59e0b;
 }
 
-.secondary-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+.chip.highlight-owned.active {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #0d111a;
 }
 
-.loading,
-.empty-state {
+.secondary-filters { display: flex; flex-direction: column; gap: 12px; }
+
+.loading, .empty-state {
   padding: 36px;
   text-align: center;
   color: #94a3b8;
@@ -507,7 +732,6 @@ watch(
   border-radius: 16px;
 }
 
-/* GRILLE DES CARTES */
 .card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -525,10 +749,7 @@ watch(
   flex-direction: column;
 }
 
-.card-item:hover {
-  transform: translateY(-4px);
-  border-color: #eab308;
-}
+.card-item:hover { transform: translateY(-4px); border-color: #f59e0b; }
 
 .card-art {
   width: 100%;
@@ -545,13 +766,35 @@ watch(
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: filter 0.3s ease;
 }
 
-.placeholder-art {
-  color: #64748b;
-  font-size: 0.9rem;
-  font-weight: 800;
+.unowned-card .card-art img { filter: grayscale(100%) opacity(0.35); }
+
+.unowned-badge {
+  position: absolute;
+  bottom: 8px;
+  background: rgba(15, 23, 42, 0.88);
+  color: #94a3b8;
+  font-size: 0.68rem;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 700;
 }
+
+.owned-count-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #f59e0b;
+  color: #111827;
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.placeholder-art { color: #64748b; font-size: 0.9rem; font-weight: 800; }
 
 .card-footer {
   background: #0d111a;
@@ -572,23 +815,9 @@ watch(
   text-overflow: ellipsis;
 }
 
-.card-meta-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.card-code {
-  color: #94a3b8;
-  font-size: 0.75rem;
-  font-weight: 600;
-  font-family: monospace;
-}
-
-.rarity-tag {
-  font-size: 0.78rem;
-  font-weight: 800;
-}
+.card-meta-row { display: flex; justify-content: space-between; align-items: center; }
+.card-code { color: #94a3b8; font-size: 0.75rem; font-weight: 600; font-family: monospace; }
+.rarity-tag { font-size: 0.78rem; font-weight: 800; }
 
 .load-more-row {
   display: flex;
@@ -601,7 +830,7 @@ watch(
 }
 
 .load-more-btn {
-  background: #eab308;
+  background: #f59e0b;
   color: #111827;
   border: none;
   border-radius: 999px;
@@ -610,26 +839,16 @@ watch(
   cursor: pointer;
 }
 
-/* SIDE PANEL (HOMOGÈNE À HOMEVIEW) */
-.side-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
+.side-panel { display: flex; flex-direction: column; gap: 16px; }
 
-.profile-card,
-.widget-card {
+.profile-card, .widget-card {
   background: #1b2333;
   border: 1px solid #273447;
   border-radius: 14px;
   padding: 16px;
 }
 
-.profile-card {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
+.profile-card { display: flex; gap: 12px; align-items: center; }
 
 .avatar {
   width: 48px;
@@ -640,65 +859,18 @@ watch(
   flex-shrink: 0;
 }
 
-.avatar img, .friend-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+.avatar img, .friend-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.profile-info h3 { color: white; font-size: 14px; font-weight: 700; }
+.profile-info p { color: #64748b; font-size: 11px; margin-top: 2px; }
 
-.profile-info h3 {
-  color: white;
-  font-size: 14px;
-  font-weight: 700;
-}
+.xp-bar { width: 100%; height: 4px; background: #1e293b; border-radius: 2px; margin-top: 8px; }
+.xp-progress { height: 4px; width: 65%; border-radius: 2px; background: #3b82f6; }
 
-.profile-info p {
-  color: #64748b;
-  font-size: 11px;
-  margin-top: 2px;
-}
+.widget-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.widget-title-row h3 { color: white; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+.widget-link { color: #64748b; font-size: 10px; }
 
-.xp-bar {
-  width: 100%;
-  height: 4px;
-  background: #1e293b;
-  border-radius: 2px;
-  margin-top: 8px;
-}
-
-.xp-progress {
-  height: 4px;
-  width: 65%;
-  border-radius: 2px;
-  background: #3b82f6;
-}
-
-.widget-title-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.widget-title-row h3 {
-  color: white;
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.widget-link {
-  color: #64748b;
-  font-size: 10px;
-}
-
-.friend-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 0;
-}
-
+.friend-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
 .friend-avatar {
   width: 28px;
   height: 28px;
@@ -708,62 +880,20 @@ watch(
   flex-shrink: 0;
 }
 
-.friend-meta h4 {
-  color: white;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.status-line {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #94a3b8;
-  font-size: 10px;
-  margin-top: 2px;
-}
-
-.status-dot-indicator {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
+.friend-meta h4 { color: white; font-size: 12px; font-weight: 600; }
+.status-line { display: flex; align-items: center; gap: 6px; color: #94a3b8; font-size: 10px; margin-top: 2px; }
+.status-dot-indicator { width: 6px; height: 6px; border-radius: 50%; }
 
 .status-online { background-color: #22c55e; }
 .status-ingame { background-color: #f59e0b; }
 .status-offline { background-color: #64748b; }
 
-.mission-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 12px;
-}
+.mission-item { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.mission-row { display: flex; justify-content: space-between; align-items: center; color: white; font-size: 11px; }
 
-.mission-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: white;
-  font-size: 11px;
-}
+.progress-track { width: 100%; height: 6px; border-radius: 3px; background: #1e293b; overflow: hidden; }
 
-.progress-track {
-  width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: #1e293b;
-  overflow: hidden;
-}
-
-.event-card h3 {
-  color: white;
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-  margin-bottom: 10px;
-}
-
+.event-card h3 { color: white; font-size: 12px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; }
 .event-banner {
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   border-radius: 8px;
@@ -773,13 +903,7 @@ watch(
   gap: 10px;
 }
 
-.event-banner h4 {
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
+.event-banner h4 { color: #ffffff; font-size: 12px; font-weight: 800; text-transform: uppercase; }
 .event-banner button {
   align-self: flex-start;
   border: none;
@@ -793,32 +917,14 @@ watch(
 }
 
 @media (max-width: 1200px) {
-  .collection-shell {
-    grid-template-columns: 1fr;
-  }
-
-  .side-panel {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  .collection-shell { grid-template-columns: 1fr; }
+  .side-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 900px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .progress-card {
-    min-width: 100%;
-  }
-
-  .card-grid {
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  }
-
-  .side-panel {
-    grid-template-columns: 1fr;
-  }
+  .page-header { flex-direction: column; align-items: flex-start; }
+  .progress-card { min-width: 100%; }
+  .card-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+  .side-panel { grid-template-columns: 1fr; }
 }
 </style>

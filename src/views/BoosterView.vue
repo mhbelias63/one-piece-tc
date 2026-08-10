@@ -81,29 +81,24 @@
                                 <div class="card-front" :class="frontClass(card)">
                                     <img :src="card.image_url" :alt="card.name" />
 
-
-                                    <!-- PARTICULES (affichées uniquement sur la carte du dessus) -->
+                                    <!-- PARTICULES -->
                                     <template v-if="index === 0 && !showBack">
-                                        <!-- 1. SEC + Alternative : Iridescent Ultra x2 (Priorité ultime) -->
                                         <div v-if="card?.rarity === 'SEC' && isAlternative(card)"
                                             class="particles-container iridescent-ultra">
                                             <div class="iridescent-aura ultra"></div>
                                             <span v-for="p in 32" :key="`sec-alt-${p}`" class="p-dot"></span>
                                         </div>
 
-                                        <!-- 2. SEC classique (Non-alternative) : Doré strict -->
                                         <div v-else-if="card?.rarity === 'SEC'" class="particles-container gold">
                                             <div class="gold-aura"></div>
                                             <span v-for="p in 16" :key="`sec-${p}`" class="p-dot"></span>
                                         </div>
 
-                                        <!-- 3. SR classique (Non-alternative) : Bleu strict -->
                                         <div v-else-if="card?.rarity === 'SR' && !isAlternative(card)"
                                             class="particles-container blue">
                                             <span v-for="p in 12" :key="`sr-${p}`" class="p-dot"></span>
                                         </div>
 
-                                        <!-- 4. Autres Alternatives (R, UC, C, etc.) : Iridescent Standard -->
                                         <div v-else-if="isAlternative(card)" class="particles-container iridescent">
                                             <div class="iridescent-aura"></div>
                                             <span v-for="p in 16" :key="`alt-${p}`" class="p-dot"></span>
@@ -123,7 +118,7 @@
                 <p class="hint-text">Clique sur la carte pour révéler la suivante</p>
             </div>
 
-            <!-- 3. ÉTAPE RÉCAPITULATIF (TRIÉ DU PLUS RARE AU MOINS RARE) -->
+            <!-- 3. ÉTAPE RÉCAPITULATIF -->
             <div v-else-if="step === 'summary'" class="summary-stage">
                 <div class="reveal-topbar">
                     <div>
@@ -163,12 +158,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-    import.meta.env.VITE_SUPABASE_URL,
-    import.meta.env.VITE_SUPABASE_ANON_KEY
-)
+import { supabase } from '../supabase'
 
 const emit = defineEmits(['spend-gems'])
 
@@ -193,22 +183,12 @@ const currentPackImage = computed(() => {
     }
 })
 
-const visibleStack = computed(() => {
-    return drawnCards.value.slice(currentIndex.value)
-})
+const visibleStack = computed(() => drawnCards.value.slice(currentIndex.value))
 
 const sortedDrawnCards = computed(() => {
     const rarityRank = {
-        'SEC_ALT': 1,
-        'ALT': 2,
-        'SEC': 3,
-        'SR': 4,
-        'R': 5,
-        'UC': 6,
-        'C': 7,
-        'L': 8
+        'SEC_ALT': 1, 'ALT': 2, 'SEC': 3, 'SR': 4, 'R': 5, 'UC': 6, 'C': 7, 'L': 8
     }
-
     return [...drawnCards.value].sort((a, b) => {
         const getRank = (card) => {
             const alt = isAlternative(card)
@@ -221,6 +201,14 @@ const sortedDrawnCards = computed(() => {
 })
 
 async function openPack() {
+    // 1. Vérification de l'utilisateur connecté
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+        alert("Tu dois être connecté pour ouvrir des boosters !")
+        return
+    }
+
+    // 2. Charger toutes les cartes disponibles
     const { data: allCards, error } = await supabase.from('cards').select('*')
     if (error || !allCards || allCards.length === 0) return
 
@@ -229,15 +217,31 @@ async function openPack() {
 
     const totalToDraw = selectedView.value === 'booster' ? 12 : 288
     const pack = []
+    const dbInserts = []
 
+    // 3. Déterminer TOUTES les cartes du booster à l'avance
     for (let i = 0; i < totalToDraw; i++) {
         const randomIndex = Math.floor(Math.random() * cardsToDrawFrom.length)
+        const drawnCard = cardsToDrawFrom[randomIndex]
+
         pack.push({
-            ...cardsToDrawFrom[randomIndex],
+            ...drawnCard,
             drawId: `card-${i}-${Date.now()}`
+        })
+
+        dbInserts.push({
+            user_id: user.id,
+            card_id: drawnCard.id
         })
     }
 
+    // 4. SAUVEGARDE IMMÉDIATE DANS SUPABASE (indépendante du bouton Terminer)
+    const { error: insertError } = await supabase.from('user_cards').insert(dbInserts)
+    if (insertError) {
+        console.error("Erreur d'enregistrement Supabase :", insertError)
+    }
+
+    // 5. Mise à jour de l'affichage
     drawnCards.value = pack
     currentIndex.value = 0
     showBack.value = false
@@ -289,7 +293,7 @@ function getCardBack(card) {
     const isLeader =
         (card?.type && card.type.toLowerCase().includes('leader')) ||
         (card?.category && card.category.toLowerCase().includes('leader'))
-    return isLeader ? '/CardBackLeader.png' : '/CardBackRegular.png'
+    return isLeader ? '/CardBackRegular.png' : '/CardBackRegular.png'
 }
 
 function getStackDepthStyle(index) {
@@ -389,7 +393,6 @@ function getStackDepthStyle(index) {
     margin: 0 auto;
 }
 
-/* PACKS */
 .pack-stage {
     position: relative;
     display: flex;
@@ -516,7 +519,6 @@ function getStackDepthStyle(index) {
     border-color: rgba(245, 158, 11, 0.4);
 }
 
-/* RÉVÉLATION & PILE 3D */
 .stack-viewport {
     width: 100%;
     height: 450px;
@@ -582,7 +584,6 @@ function getStackDepthStyle(index) {
     overflow: hidden;
 }
 
-/* SYSTÈME DE PARTICULES (EXTÉRIEUR UNIQUEMENT) */
 .particles-container {
     position: absolute;
     inset: -60px;
@@ -601,13 +602,11 @@ function getStackDepthStyle(index) {
     animation: starTwinkle 1.2s infinite ease-in-out;
 }
 
-/* 1. SR : Bleues */
 .particles-container.blue .p-dot {
     background: #38bdf8;
     box-shadow: 0 0 10px #38bdf8, 0 0 20px #0284c7;
 }
 
-/* 2. SEC : Dorées */
 .particles-container.gold .p-dot {
     background: #facc15;
     box-shadow: 0 0 12px #facc15, 0 0 24px #eab308;
@@ -622,7 +621,6 @@ function getStackDepthStyle(index) {
     animation: auraGlow 1.2s infinite alternate ease-in-out;
 }
 
-/* 3. ALTERNATIVE : Iridescent Standard */
 .particles-container.iridescent .p-dot {
     background: linear-gradient(135deg, #f472b6, #38bdf8, #facc15);
     box-shadow: 0 0 12px #e879f9, 0 0 24px #38bdf8;
@@ -637,7 +635,6 @@ function getStackDepthStyle(index) {
     animation: auraGlow 1s infinite alternate ease-in-out;
 }
 
-/* 4. SEC + ALTERNATIVE : Iridescent Ultra x2 */
 .particles-container.iridescent-ultra .p-dot {
     width: 18px;
     height: 18px;
@@ -654,195 +651,48 @@ function getStackDepthStyle(index) {
     animation: auraGlow 0.6s infinite alternate ease-in-out;
 }
 
-/* POSITIONS STRICTEMENT À L'EXTÉRIEUR DU CADRE */
-.p-dot:nth-child(1) {
-    transform: translate(-155px, -180px) scale(0.9);
-    animation-delay: 0s;
-}
-
-.p-dot:nth-child(2) {
-    transform: translate(155px, -170px) scale(1.2);
-    animation-delay: 0.2s;
-}
-
-.p-dot:nth-child(3) {
-    transform: translate(-165px, 160px) scale(1);
-    animation-delay: 0.4s;
-}
-
-.p-dot:nth-child(4) {
-    transform: translate(160px, 175px) scale(0.8);
-    animation-delay: 0.1s;
-}
-
-.p-dot:nth-child(5) {
-    transform: translate(-70px, -210px) scale(1.3);
-    animation-delay: 0.3s;
-}
-
-.p-dot:nth-child(6) {
-    transform: translate(-185px, -40px) scale(0.9);
-    animation-delay: 0.5s;
-}
-
-.p-dot:nth-child(7) {
-    transform: translate(185px, 30px) scale(1.1);
-    animation-delay: 0.15s;
-}
-
-.p-dot:nth-child(8) {
-    transform: translate(60px, 210px) scale(0.8);
-    animation-delay: 0.35s;
-}
-
-.p-dot:nth-child(9) {
-    transform: translate(-120px, -200px) scale(1.1);
-    animation-delay: 0.25s;
-}
-
-.p-dot:nth-child(10) {
-    transform: translate(130px, -190px) scale(0.7);
-    animation-delay: 0.45s;
-}
-
-.p-dot:nth-child(11) {
-    transform: translate(-140px, 190px) scale(1.2);
-    animation-delay: 0.05s;
-}
-
-.p-dot:nth-child(12) {
-    transform: translate(145px, 160px) scale(0.9);
-    animation-delay: 0.3s;
-}
-
-.p-dot:nth-child(13) {
-    transform: translate(-180px, 80px) scale(0.8);
-    animation-delay: 0.5s;
-}
-
-.p-dot:nth-child(14) {
-    transform: translate(175px, -90px) scale(1.1);
-    animation-delay: 0.2s;
-}
-
-.p-dot:nth-child(15) {
-    transform: translate(-180px, -110px) scale(0.8);
-    animation-delay: 0.4s;
-}
-
-.p-dot:nth-child(16) {
-    transform: translate(180px, -110px) scale(1.3);
-    animation-delay: 0.1s;
-}
-
-/* Coordonnées supplémentaires (mode Ultra) */
-.p-dot:nth-child(17) {
-    transform: translate(-80px, 210px) scale(1.2);
-    animation-delay: 0.08s;
-}
-
-.p-dot:nth-child(18) {
-    transform: translate(90px, -210px) scale(1);
-    animation-delay: 0.18s;
-}
-
-.p-dot:nth-child(19) {
-    transform: translate(-195px, 0px) scale(1.1);
-    animation-delay: 0.28s;
-}
-
-.p-dot:nth-child(20) {
-    transform: translate(195px, -30px) scale(1.4);
-    animation-delay: 0.38s;
-}
-
-.p-dot:nth-child(21) {
-    transform: translate(-140px, -170px) scale(0.7);
-    animation-delay: 0.48s;
-}
-
-.p-dot:nth-child(22) {
-    transform: translate(140px, -160px) scale(1.3);
-    animation-delay: 0.12s;
-}
-
-.p-dot:nth-child(23) {
-    transform: translate(-170px, 130px) scale(0.9);
-    animation-delay: 0.22s;
-}
-
-.p-dot:nth-child(24) {
-    transform: translate(170px, 120px) scale(1.1);
-    animation-delay: 0.32s;
-}
-
-.p-dot:nth-child(25) {
-    transform: translate(0px, -220px) scale(1.4);
-    animation-delay: 0.02s;
-}
-
-.p-dot:nth-child(26) {
-    transform: translate(0px, 220px) scale(1.2);
-    animation-delay: 0.14s;
-}
-
-.p-dot:nth-child(27) {
-    transform: translate(-190px, -140px) scale(1);
-    animation-delay: 0.24s;
-}
-
-.p-dot:nth-child(28) {
-    transform: translate(190px, -140px) scale(0.8);
-    animation-delay: 0.34s;
-}
-
-.p-dot:nth-child(29) {
-    transform: translate(-190px, 140px) scale(1.3);
-    animation-delay: 0.44s;
-}
-
-.p-dot:nth-child(30) {
-    transform: translate(190px, 140px) scale(1.1);
-    animation-delay: 0.06s;
-}
-
-.p-dot:nth-child(31) {
-    transform: translate(-30px, -215px) scale(0.9);
-    animation-delay: 0.16s;
-}
-
-.p-dot:nth-child(32) {
-    transform: translate(30px, 215px) scale(1.2);
-    animation-delay: 0.26s;
-}
+.p-dot:nth-child(1) { transform: translate(-155px, -180px) scale(0.9); animation-delay: 0s; }
+.p-dot:nth-child(2) { transform: translate(155px, -170px) scale(1.2); animation-delay: 0.2s; }
+.p-dot:nth-child(3) { transform: translate(-165px, 160px) scale(1); animation-delay: 0.4s; }
+.p-dot:nth-child(4) { transform: translate(160px, 175px) scale(0.8); animation-delay: 0.1s; }
+.p-dot:nth-child(5) { transform: translate(-70px, -210px) scale(1.3); animation-delay: 0.3s; }
+.p-dot:nth-child(6) { transform: translate(-185px, -40px) scale(0.9); animation-delay: 0.5s; }
+.p-dot:nth-child(7) { transform: translate(185px, 30px) scale(1.1); animation-delay: 0.15s; }
+.p-dot:nth-child(8) { transform: translate(60px, 210px) scale(0.8); animation-delay: 0.35s; }
+.p-dot:nth-child(9) { transform: translate(-120px, -200px) scale(1.1); animation-delay: 0.25s; }
+.p-dot:nth-child(10) { transform: translate(130px, -190px) scale(0.7); animation-delay: 0.45s; }
+.p-dot:nth-child(11) { transform: translate(-140px, 190px) scale(1.2); animation-delay: 0.05s; }
+.p-dot:nth-child(12) { transform: translate(145px, 160px) scale(0.9); animation-delay: 0.3s; }
+.p-dot:nth-child(13) { transform: translate(-180px, 80px) scale(0.8); animation-delay: 0.5s; }
+.p-dot:nth-child(14) { transform: translate(175px, -90px) scale(1.1); animation-delay: 0.2s; }
+.p-dot:nth-child(15) { transform: translate(-180px, -110px) scale(0.8); animation-delay: 0.4s; }
+.p-dot:nth-child(16) { transform: translate(180px, -110px) scale(1.3); animation-delay: 0.1s; }
+.p-dot:nth-child(17) { transform: translate(-80px, 210px) scale(1.2); animation-delay: 0.08s; }
+.p-dot:nth-child(18) { transform: translate(90px, -210px) scale(1); animation-delay: 0.18s; }
+.p-dot:nth-child(19) { transform: translate(-195px, 0px) scale(1.1); animation-delay: 0.28s; }
+.p-dot:nth-child(20) { transform: translate(195px, -30px) scale(1.4); animation-delay: 0.38s; }
+.p-dot:nth-child(21) { transform: translate(-140px, -170px) scale(0.7); animation-delay: 0.48s; }
+.p-dot:nth-child(22) { transform: translate(140px, -160px) scale(1.3); animation-delay: 0.12s; }
+.p-dot:nth-child(23) { transform: translate(-170px, 130px) scale(0.9); animation-delay: 0.22s; }
+.p-dot:nth-child(24) { transform: translate(170px, 120px) scale(1.1); animation-delay: 0.32s; }
+.p-dot:nth-child(25) { transform: translate(0px, -220px) scale(1.4); animation-delay: 0.02s; }
+.p-dot:nth-child(26) { transform: translate(0px, 220px) scale(1.2); animation-delay: 0.14s; }
+.p-dot:nth-child(27) { transform: translate(-190px, -140px) scale(1); animation-delay: 0.24s; }
+.p-dot:nth-child(28) { transform: translate(190px, -140px) scale(0.8); animation-delay: 0.34s; }
+.p-dot:nth-child(29) { transform: translate(-190px, 140px) scale(1.3); animation-delay: 0.44s; }
+.p-dot:nth-child(30) { transform: translate(190px, 140px) scale(1.1); animation-delay: 0.06s; }
+.p-dot:nth-child(31) { transform: translate(-30px, -215px) scale(0.9); animation-delay: 0.16s; }
+.p-dot:nth-child(32) { transform: translate(30px, 215px) scale(1.2); animation-delay: 0.26s; }
 
 @keyframes starTwinkle {
-    0% {
-        opacity: 0;
-        transform: scale(0.2) rotate(0deg);
-    }
-
-    50% {
-        opacity: 1;
-        transform: scale(1.4) rotate(90deg);
-    }
-
-    100% {
-        opacity: 0;
-        transform: scale(0.2) rotate(180deg);
-    }
+    0% { opacity: 0; transform: scale(0.2) rotate(0deg); }
+    50% { opacity: 1; transform: scale(1.4) rotate(90deg); }
+    100% { opacity: 0; transform: scale(0.2) rotate(180deg); }
 }
 
 @keyframes auraGlow {
-    0% {
-        opacity: 0.4;
-        transform: scale(0.98);
-    }
-
-    100% {
-        opacity: 0.9;
-        transform: scale(1.05);
-    }
+    0% { opacity: 0.4; transform: scale(0.98); }
+    100% { opacity: 0.9; transform: scale(1.05); }
 }
 
 .hint-text {
@@ -852,7 +702,6 @@ function getStackDepthStyle(index) {
     margin-top: 20px;
 }
 
-/* RÉCAPITULATIF */
 .summary-stage {
     width: 100%;
 }
@@ -898,17 +747,9 @@ function getStackDepthStyle(index) {
     color: #000;
 }
 
-.badge-tag.sr {
-    background: #38bdf8;
-}
-
-.badge-tag.sec {
-    background: #facc15;
-}
-
-.badge-tag.alt {
-    background: #e879f9;
-}
+.badge-tag.sr { background: #38bdf8; }
+.badge-tag.sec { background: #facc15; }
+.badge-tag.alt { background: #e879f9; }
 
 .reveal-actions {
     display: flex;

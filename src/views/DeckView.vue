@@ -326,21 +326,34 @@ async function persistDecks() {
 }
 
 async function loadDecks() {
+    loading.value = true
+    // Récupération depuis Supabase via le helper playerService
     const remoteDecks = await fetchUserDecks()
     if (remoteDecks && remoteDecks.length > 0) {
         decks.value = remoteDecks
-        window.localStorage.setItem('onepiece-decks', JSON.stringify(remoteDecks))
-        return
-    }
-
-    const raw = window.localStorage.getItem('onepiece-decks')
-    if (raw) {
-        try {
-            decks.value = JSON.parse(raw)
-        } catch {
-            decks.value = []
+    } else {
+        // En secours si l'utilisateur est hors-ligne
+        const raw = window.localStorage.getItem('onepiece-decks')
+        if (raw) {
+            try { decks.value = JSON.parse(raw) } catch { decks.value = [] }
         }
     }
+    loading.value = false
+}
+
+async function deleteDeckConfirmed() {
+    if (!deckToDelete.value) return
+    const idToDelete = deckToDelete.value.id
+    decks.value = decks.value.filter(d => d.id !== idToDelete)
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+        // Suppression directe dans la table user_decks
+        await supabase.from('user_decks').delete().eq('id', idToDelete).eq('user_id', user.id)
+    }
+
+    await persistDecks()
+    deckToDelete.value = null
 }
 
 function openEditor(deckId) {
@@ -368,19 +381,7 @@ async function createDeck(name) {
     openEditor(newDeck.id)
 }
 
-async function deleteDeckConfirmed() {
-    if (!deckToDelete.value) return
-    const idToDelete = deckToDelete.value.id
-    decks.value = decks.value.filter(d => d.id !== idToDelete)
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user && !idToDelete.includes('-')) {
-        await supabase.from('user_decks').delete().eq('id', idToDelete)
-    }
-
-    await persistDecks()
-    deckToDelete.value = null
-}
 
 function isLeaderCard(card) {
     return !!(card?.type?.toLowerCase().includes('leader') || card?.category?.toLowerCase().includes('leader'))

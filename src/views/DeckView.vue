@@ -11,17 +11,60 @@
                     <span class="search-icon">⌕</span>
                     <input v-model="searchDecks" type="text" placeholder="Rechercher un deck..." class="search-input" />
                 </div>
-                <button class="primary-btn" type="button" @click="showCreateModal = true">Créer un deck</button>
+
+                <!-- BOUTON SÉLECTIONNER / ANNULER -->
+                <button 
+                    class="secondary-btn" 
+                    type="button" 
+                    @click="toggleSelectionMode"
+                >
+                    {{ isSelectionMode ? 'Annuler' : 'Sélectionner' }}
+                </button>
+
+                <!-- BOUTON SUPPRIMER LA SÉLECTION (Visible si mode sélection actif) -->
+                <button 
+                    v-if="isSelectionMode" 
+                    class="delete-btn" 
+                    type="button" 
+                    :disabled="selectedDeckIds.length === 0"
+                    @click="showBatchDeleteModal = true"
+                >
+                    Supprimer ({{ selectedDeckIds.length }})
+                </button>
+
+                <!-- BOUTON CRÉER UN DECK -->
+                <button v-else class="primary-btn" type="button" @click="showCreateModal = true">Créer un deck</button>
             </div>
         </header>
 
         <!-- 1. DASHBOARD DES DECKS -->
         <section v-if="!editingDeckId" class="deck-dashboard">
             <div class="deck-grid">
-                <DeckCard v-for="deck in filteredDecks" :key="deck.id" :deck="deck" :count="deckCardCount(deck)"
-                    @click="openEditor(deck.id)" @delete="deckToDelete = $event" />
+                <div 
+                    v-for="deck in filteredDecks" 
+                    :key="deck.id" 
+                    class="deck-card-wrapper"
+                    :class="{ 'selectable': isSelectionMode, 'selected': selectedDeckIds.includes(deck.id) }"
+                    @click="handleDeckClick(deck)"
+                >
+                    <!-- CASE À COCHER EN MODE SÉLECTION -->
+                    <div v-if="isSelectionMode" class="checkbox-badge">
+                        <input 
+                            type="checkbox" 
+                            :checked="selectedDeckIds.includes(deck.id)" 
+                            @click.stop="toggleDeckSelection(deck.id)"
+                        />
+                    </div>
 
-                <article class="deck-card-empty" @click="showCreateModal = true">
+                    <DeckCard 
+                        :deck="deck" 
+                        :count="deckCardCount(deck)"
+                        @click="handleDeckClick(deck)" 
+                        @delete="deckToDelete = $event" 
+                    />
+                </div>
+
+                <article v-if="!isSelectionMode" class="deck-card-empty" @click="showCreateModal = true">
                     <div class="empty-state-inner">
                         <span class="empty-icon">+</span>
                         <p>Créer un nouveau deck</p>
@@ -110,11 +153,17 @@
             description="Donne un nom à ton deck et commence l’édition." placeholder="Nom du deck" confirmText="Créer"
             @close="showCreateModal = false" @confirm="createDeck" />
 
-        <!-- MODALE SUPPRESSION -->
+        <!-- MODALE SUPPRESSION UNIQUE -->
         <CreateDeckModal v-if="deckToDelete" title="Supprimer le deck"
             :description="`Es-tu sûr de vouloir supprimer '${deckToDelete.name}' ?`" :isInput="false" :isDanger="true"
             cancelText="Non, annuler" confirmText="Oui, supprimer" @close="deckToDelete = null"
             @confirm="deleteDeckConfirmed" />
+
+        <!-- MODALE SUPPRESSION MULTIPLE -->
+        <CreateDeckModal v-if="showBatchDeleteModal" title="Suppression multiple"
+            :description="`Es-tu sûr de vouloir supprimer définitivement ces ${selectedDeckIds.length} decks ?`" :isInput="false" :isDanger="true"
+            cancelText="Annuler" confirmText="Oui, tout supprimer" @close="showBatchDeleteModal = false"
+            @confirm="deleteSelectedDecks" />
 
         <!-- MODALE DÉTAILS CARTE -->
         <DeckCardModal v-if="selectedModalCard" :card="selectedModalCard" :alternatives="allAlternativeSkins"
@@ -144,6 +193,50 @@ const showLeaderSelection = ref(false)
 const editingDeckId = ref(null)
 const selectedModalCard = ref(null)
 const deckToDelete = ref(null)
+
+// GESTION DU MODE SÉLECTION MULTIPLE
+const isSelectionMode = ref(false)
+const selectedDeckIds = ref([])
+const showBatchDeleteModal = ref(false)
+
+function toggleSelectionMode() {
+    isSelectionMode.value = !isSelectionMode.value
+    selectedDeckIds.value = []
+}
+
+function toggleDeckSelection(deckId) {
+    const index = selectedDeckIds.value.indexOf(deckId)
+    if (index === -1) {
+        selectedDeckIds.value.push(deckId)
+    } else {
+        selectedDeckIds.value.splice(index, 1)
+    }
+}
+
+function handleDeckClick(deck) {
+    if (isSelectionMode.value) {
+        toggleDeckSelection(deck.id)
+    } else {
+        openEditor(deck.id)
+    }
+}
+
+async function deleteSelectedDecks() {
+    if (selectedDeckIds.value.length === 0) return
+
+    const idsToDelete = [...selectedDeckIds.value]
+    decks.value = decks.value.filter(d => !idsToDelete.includes(d.id))
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+        await supabase.from('user_decks').delete().in('id', idsToDelete).eq('user_id', user.id)
+    }
+
+    persistLocalDecks()
+    selectedDeckIds.value = []
+    isSelectionMode.value = false
+    showBatchDeleteModal.value = false
+}
 
 const activeDeck = computed(() => decks.value.find(deck => deck.id === editingDeckId.value) || null)
 
@@ -365,7 +458,7 @@ async function exitEditor() {
     editingDeckId.value = null
     showLeaderSelection.value = false
     searchCatalog.value = ''
-    await loadDecks() // Recharge proprement la liste pour éviter tout doublon
+    await loadDecks()
 }
 
 async function createDeck(name) {
@@ -480,7 +573,8 @@ onMounted(() => {
 }
 
 .primary-btn,
-.secondary-btn {
+.secondary-btn,
+.delete-btn {
     border: none;
     border-radius: 999px;
     cursor: pointer;
@@ -499,6 +593,17 @@ onMounted(() => {
     padding: 10px 18px;
 }
 
+.delete-btn {
+    background: #ef4444;
+    color: #ffffff;
+    padding: 10px 20px;
+}
+
+.delete-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
 .deck-dashboard {
     margin-top: 18px;
 }
@@ -507,6 +612,42 @@ onMounted(() => {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 20px;
+}
+
+/* STYLES MODE SÉLECTION */
+.deck-card-wrapper {
+    position: relative;
+    border-radius: 20px;
+    transition: all 0.2s ease;
+}
+
+.deck-card-wrapper.selectable {
+    cursor: pointer;
+}
+
+.deck-card-wrapper.selected {
+    outline: 3px solid #ef4444;
+    border-radius: 20px;
+}
+
+.checkbox-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 10;
+    background: rgba(15, 23, 42, 0.9);
+    padding: 6px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.checkbox-badge input {
+    width: 18px;
+    height: 18px;
+    accent-color: #ef4444;
+    cursor: pointer;
 }
 
 .deck-card-empty {

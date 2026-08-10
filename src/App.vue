@@ -41,7 +41,7 @@
             <img :src="profile.avatar_url" alt="Avatar" class="avatar" />
             <div class="user-info">
               <strong>{{ profile.username }}</strong>
-              <small>Niveau 24</small>
+              <small class="user-level">Niveau 24</small>
             </div>
             <span class="dropdown-arrow">▾</span>
           </div>
@@ -161,10 +161,26 @@ onUnmounted(() => {
 </script>
 
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-body { background-color: #0b0f19; color: #f8fafc; overflow-x: hidden; }
+* { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+  font-family: system-ui, -apple-system, sans-serif; 
+}
 
-.app-layout { display: flex; min-height: 100vh; }
+html, body { 
+  background-color: #0b0f19; 
+  color: #f8fafc; 
+  overflow-x: hidden; 
+  width: 100%;
+}
+
+.app-layout { 
+  display: flex; 
+  min-height: 100vh; 
+  width: 100%;
+  overflow-x: hidden;
+}
 
 /* DROPDOWN PROFIL */
 .profile-dropdown-wrapper { position: relative; }
@@ -270,19 +286,27 @@ body { background-color: #0b0f19; color: #f8fafc; overflow-x: hidden; }
 .nav-item.router-link-active { background: #f59e0b; color: #111827; }
 .nav-item.disabled { opacity: 0.35; cursor: not-allowed; }
 
-.main-wrapper { margin-left: 240px; flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.main-wrapper { 
+  margin-left: 240px; 
+  flex: 1; 
+  display: flex; 
+  flex-direction: column; 
+  min-width: 0; 
+  width: calc(100% - 240px);
+}
 
 .topbar {
   height: 60px;
-  background: rgba(11, 15, 25, 0.9);
+  background: rgba(11, 15, 25, 0.95);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
-  padding: 0 24px;
+  padding: 0 20px;
   position: sticky;
   top: 0;
   z-index: 90;
+  width: 100%;
 }
 
 .spacer { flex: 1; }
@@ -314,7 +338,7 @@ body { background-color: #0b0f19; color: #f8fafc; overflow-x: hidden; }
   place-items: center;
 }
 
-.content-body { padding: 24px; }
+.content-body { padding: 24px; width: 100%; }
 
 /* THEME CLAIR */
 .app-layout.light-theme { background-color: #f1f5f9; color: #0f172a; }
@@ -323,16 +347,87 @@ body { background-color: #0b0f19; color: #f8fafc; overflow-x: hidden; }
 .app-layout.light-theme .nav-item { color: #64748b; }
 .app-layout.light-theme .user-badge, .app-layout.light-theme .currency-badge { background: #f8fafc; border-color: #cbd5e1; }
 
+/* ADAPTATIONS MOBILES (< 768px) */
 @media (max-width: 768px) {
   .navigation-sidebar {
-    width: 100vw; height: 66px; top: auto; bottom: 0; left: 0; right: 0;
-    flex-direction: row; padding: 0 10px; border-right: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(13, 17, 23, 0.95); z-index: 1000;
+    width: 100%;
+    height: 60px;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    flex-direction: row;
+    padding: 0 4px;
+    border-right: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(13, 17, 23, 0.98);
+    backdrop-filter: blur(20px);
+    z-index: 1000;
   }
+
   .brand-header { display: none; }
-  .nav-links { flex-direction: row; width: 100%; justify-content: space-around; align-items: center; }
-  .nav-item { flex-direction: column; justify-content: center; padding: 6px; gap: 2px; font-size: 0.68rem; width: auto; }
-  .main-wrapper { margin-left: 0; padding-bottom: 70px; }
+
+  .nav-links {
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-around;
+    align-items: center;
+  }
+
+  .nav-item {
+    flex-direction: column;
+    justify-content: center;
+    padding: 4px;
+    gap: 2px;
+    font-size: 0.62rem;
+    border-radius: 8px;
+    width: 20%;
+  }
+
+  .nav-item .icon { font-size: 1.1rem; }
+
+  .main-wrapper {
+    margin-left: 0;
+    width: 100%;
+    padding-bottom: 70px;
+  }
+
+  .topbar {
+    padding: 0 8px;
+    gap: 4px;
+    height: 52px;
+  }
+
+  .user-badge {
+    padding: 4px 6px;
+    gap: 4px;
+  }
+
+  .user-badge .avatar {
+    width: 26px;
+    height: 26px;
+  }
+
+  .user-info {
+    font-size: 0.7rem;
+  }
+
+  .user-level {
+    display: none;
+  }
+
+  .currency-group {
+    gap: 4px;
+  }
+
+  .currency-badge {
+    padding: 4px 6px;
+    font-size: 0.72rem;
+    gap: 3px;
+  }
+
+  .content-body {
+    padding: 8px;
+  }
 }
 </style>

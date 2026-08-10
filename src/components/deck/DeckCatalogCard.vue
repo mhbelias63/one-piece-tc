@@ -32,13 +32,15 @@ defineEmits(['click'])
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 12px;
-  padding: 8px;
+  padding: 6px;
   cursor: pointer;
   position: relative;
   transition: transform 0.2s ease;
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .catalog-card:hover {
@@ -51,20 +53,22 @@ defineEmits(['click'])
   cursor: not-allowed;
 }
 
-/* AJUSTEMENT DU RATIO POUR NE PAS ROGNER L'IMAGE */
 .catalog-art {
   width: 100%;
-  aspect-ratio: 0.71; /* Ratio standard des cartes de jeu */
+  aspect-ratio: 0.71;
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 6px;
   background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .catalog-art img {
   width: 100%;
   height: 100%;
-  object-fit: contain; /* Conserve 100% de la carte visible */
+  object-fit: contain;
 }
 
 .placeholder-art {
@@ -81,7 +85,7 @@ defineEmits(['click'])
 
 .catalog-info strong {
   display: block;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: #f8fafc;
   white-space: nowrap;
   overflow: hidden;
@@ -90,7 +94,7 @@ defineEmits(['click'])
 
 .catalog-info span {
   color: #94a3b8;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
 }
 
 .leader-tag {

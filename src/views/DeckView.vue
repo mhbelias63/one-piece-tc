@@ -513,6 +513,7 @@ onMounted(() => {
     max-width: 1280px;
     margin: 0 auto;
     padding: 24px 20px 40px;
+    width: 100%;
 }
 
 .deck-hero {
@@ -612,19 +613,21 @@ onMounted(() => {
 
 .deck-dashboard {
     margin-top: 14px;
+    width: 100%;
 }
 
-/* GRILLE RESPONSIVE POUR DECK CARDS */
 .deck-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 16px;
+    width: 100%;
 }
 
 .deck-card-wrapper {
     position: relative;
     border-radius: 16px;
     transition: all 0.2s ease;
+    width: 100%;
 }
 
 .deck-card-wrapper.selectable {
@@ -683,6 +686,7 @@ onMounted(() => {
 
 .deck-editor {
     margin-top: 16px;
+    width: 100%;
 }
 
 .editor-header {
@@ -702,6 +706,7 @@ onMounted(() => {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
+    width: 100%;
 }
 
 .deck-current-panel,
@@ -710,6 +715,7 @@ onMounted(() => {
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 20px;
     padding: 16px;
+    width: 100%;
 }
 
 .panel-title {
@@ -719,7 +725,6 @@ onMounted(() => {
     font-size: 0.95rem;
 }
 
-/* LEADER CENTRÉ ET PROPORTIONNÉ */
 .leader-slot {
     min-height: 160px;
     border: 1px dashed rgba(255, 255, 255, 0.2);
@@ -747,7 +752,7 @@ onMounted(() => {
 .leader-img-wrapper img {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Conserve le ratio sans rogner */
+    object-fit: contain;
 }
 
 .leader-info {
@@ -772,6 +777,7 @@ onMounted(() => {
     overflow-y: auto;
     padding-top: 6px;
     justify-items: center;
+    width: 100%;
 }
 
 .empty-list {
@@ -803,33 +809,34 @@ onMounted(() => {
     margin-bottom: 14px;
 }
 
-/* GRILLE DU CATALOGUE : 2 COLONNES SUR MOBILE */
+/* GRILLE DU CATALOGUE */
 .card-catalog-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
     max-height: 520px;
     overflow-y: auto;
+    width: 100%;
 }
 
-/* ADAPTATIONS MOBILES PARTICULIÈRES (< 768px) */
+/* MOBILES (< 768px) */
 @media (max-width: 768px) {
     .deck-page {
-        padding: 12px 10px 80px 10px;
+        padding: 8px 4px 80px 4px;
     }
 
     .deck-hero {
         flex-direction: column;
-        gap: 12px;
-        margin-bottom: 16px;
+        gap: 10px;
+        margin-bottom: 14px;
     }
 
     .deck-hero h1 {
-        font-size: 1.6rem;
+        font-size: 1.5rem;
     }
 
     .hero-copy {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
     }
 
     .search-actions {
@@ -837,10 +844,9 @@ onMounted(() => {
         justify-content: space-between;
     }
 
-    /* Grille de 2 decks côte à côte sur écran mobile */
     .deck-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
+        gap: 8px;
     }
 
     .deck-card-empty {
@@ -849,18 +855,20 @@ onMounted(() => {
 
     .editor-body {
         grid-template-columns: 1fr;
-        gap: 14px;
+        gap: 12px;
     }
 
     .deck-current-panel,
     .catalog-panel {
-        padding: 12px;
+        padding: 10px;
+        border-radius: 14px;
     }
 
-    /* Catalogue en 2-3 colonnes propres */
+    /* FIXE SYMÉTRIE DU CATALOGUE ( EXACTEMENT 2 COLONNES ÉGALES ) */
     .card-catalog-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 8px;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+        max-height: 60vh; /* Permet au catalogue de descendre proprement */
     }
 }
 </style>

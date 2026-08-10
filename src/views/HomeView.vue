@@ -227,7 +227,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 
-import op09PackImg from '../assets/images/booster/op09.png'
+import op09PackImg from '../assets/images/booster/EMPERORS IN THE NEW WORLD- [OP-09].webp'
 import SetPreviewModal from '../components/SetPreviewModal.vue'
 
 const showSetPreview = ref(false)

@@ -82,3 +82,39 @@ export async function addCardToCollection(cardId, count = 1) {
       .insert({ user_id: user.id, card_id: cardId, count })
   }
 }
+
+// Déduire des gemmes lors d'un achat (ex: ouverture de booster)
+export async function deductUserGems(amount) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Non connecté' }
+
+  // 1. Récupérer le solde actuel
+  const { data: profile, error: fetchError } = await supabase
+    .from('profiles')
+    .select('gems')
+    .eq('id', user.id)
+    .single()
+
+  if (fetchError || !profile) {
+    return { success: false, error: 'Impossible de récupérer les gemmes' }
+  }
+
+  // 2. Vérifier si le joueur a assez de gemmes
+  if (profile.gems < amount) {
+    return { success: false, error: 'Gemmes insuffisantes !' }
+  }
+
+  const newGems = profile.gems - amount
+
+  // 3. Mettre à jour dans Supabase
+  const { error: updateError } = await supabase
+    .from('profiles')
+    .update({ gems: newGems })
+    .eq('id', user.id)
+
+  if (updateError) {
+    return { success: false, error: updateError.message }
+  }
+
+  return { success: true, newGems }
+}

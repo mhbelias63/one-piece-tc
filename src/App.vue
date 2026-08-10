@@ -5,7 +5,7 @@
     <!-- SIDEBAR PC / BARRE BASSE MOBILE -->
     <aside class="navigation-sidebar">
       <div class="brand-header">
-        <img src="/title-logo.png" alt="Logo" class="brand-logo" />
+        <img src="/icon-title.png" alt="Logo" class="brand-logo" />
       </div>
 
       <nav class="nav-links">
@@ -69,16 +69,16 @@
             <span class="amount">12 450</span>
           </div>
           <div class="currency-badge">
-            <img src="/gem.png" alt="Gem" class="gem-icon" />
-            <span class="amount">2 480</span>
-            <button class="add-btn">+</button>
-          </div>
+  <img src="/gem.png" alt="Gem" class="gem-icon" />
+  <span class="amount">{{ profile.gems ?? 2400 }}</span>
+  <button class="add-btn">+</button>
+</div>
         </div>
       </header>
 
       <main class="content-body">
-        <router-view />
-      </main>
+  <router-view @spend-gems="fetchUserProfile" />
+</main>
     </div>
 
     <!-- MODAL DE MODIFICATION DE PROFIL -->
@@ -110,7 +110,7 @@ const profile = ref({
   id: '',
   username: 'Chargement...',
   avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Luffy',
-  username_updated_at: null
+  gems: 2400
 })
 
 async function fetchUserProfile() {
@@ -261,7 +261,7 @@ html, body {
 }
 
 .brand-header { padding: 10px; margin-bottom: 20px; text-align: center; }
-.brand-logo { max-width: 100%; height: 40px; object-fit: contain; }
+.brand-logo { max-width: 100%; height: 170px; object-fit: contain; }
 
 .nav-links { display: flex; flex-direction: column; gap: 6px; }
 

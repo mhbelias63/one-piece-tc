@@ -13,99 +13,86 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
-// Fonction de nettoyage des noms avec Blacklist
+// Nettoyage des noms
 function cleanCardName(rawName) {
   if (!rawName) return ''
-
   let clean = rawName
-
-  // 1. Suppression des codes de set (ex: OP01-016, OP-01-016, ST01-001, etc.) avec ou sans parenthèses
   clean = clean.replace(/\(?\b[A-Z]{2,3}-?\d{2,3}-\d{3}\b\)?/gi, '')
-
-  // 2. Suppression de 3 chiffres entre parenthèses : "(015)" -> ""
   clean = clean.replace(/\(\d{3}\)/g, '')
 
-  // 3. Blacklist de mots-clés (case insensitive), avec ou sans parenthèses
   const blacklist = [
-    'parallel',
-    'manga',
-    'reprint',
-    'full art',
-    'full-art',
-    'fullart',
-    'box topper',
-    'boxtopper',
-    'sp',
-    'alternate art',
-    'dash pack',
-    'spr'
+    'parallel', 'manga', 'reprint', 'full art', 'full-art', 'fullart',
+    'box topper', 'boxtopper', 'sp', 'sps', 'alternate art', 'dash pack', 'spr'
   ]
 
   blacklist.forEach(word => {
-    // Regex pour capturer le mot, qu'il soit entouré de parenthèses ou isolé
     const regexWithParens = new RegExp(`\\(\\s*${word}\\s*\\)`, 'gi')
     const regexStandalone = new RegExp(`\\b${word}\\b`, 'gi')
-    
     clean = clean.replace(regexWithParens, '')
     clean = clean.replace(regexStandalone, '')
   })
 
-  // 4. Nettoyage de la ponctuation résiduelle (parenthèses vides, tirets isolés)
   clean = clean.replace(/\(\s*\)/g, '')
-
-  // 5. Normalisation des points collés (ex: Monkey.D.Dragon -> Monkey D. Dragon)
   clean = clean.replace(/([a-zA-Z])\.(?=[a-zA-Z])/g, '$1. ')
-
-  // 6. Nettoyage des espaces multiples et des extrémités
   clean = clean.replace(/\s+/g, ' ').trim()
-
   return clean
 }
 
-// Fonction de nettoyage des disclaimers dans la description des effets
+// Nettoyage des textes d'effets
 function cleanCardEffect(rawEffect) {
   if (!rawEffect) return null
-
-  // Tronque tout le texte à partir du mot "Disclaimer" (sensible ou non aux deux-points et majuscules)
-  const clean = rawEffect.replace(/Disclaimer:?.*/is, '').trim()
-
-  return clean || null
+  return rawEffect.replace(/Disclaimer:?.*/is, '').trim() || null
 }
 
-// 1. Récupération des données textuelles officielles sur optcgapi.com
-async function fetchOfficialCardData(setCode) {
-  console.log(`🌐 [1/3] Interrogation de optcgapi.com...`)
+// Détection Manga
+function checkIsManga(itemUrl, itemName) {
+  const url = (itemUrl || '').toLowerCase()
+  const name = (itemName || '').toLowerCase()
+  return url.includes('manga') || name.includes('manga')
+}
 
+// Détection SP
+function checkIsSp(itemUrl, itemName) {
+  const url = (itemUrl || '').toLowerCase()
+  const name = (itemName || '').toLowerCase()
+  return (
+    url.includes('/sp/') || 
+    url.includes('/sps/') || 
+    url.includes('sp') || // Détecte n'importe quel "sp" dans l'URL
+    name.includes('sp')
+  )
+}
+
+// 1. Dictionnaire global de toutes les cartes
+async function fetchAllOfficialCards() {
+  console.log(`🌐 [1/3] Chargement de la base globale optcgapi.com...`)
   try {
     const res = await fetch('https://optcgapi.com/api/allSetCards/')
     if (!res.ok) throw new Error(`Status HTTP: ${res.status}`)
 
     const allCards = await res.json()
-    console.log(`📦 ${allCards.length} cartes au total chargées depuis optcgapi.com.`)
+    console.log(`📦 ${allCards.length} cartes globales chargées.`)
 
     const cardsMap = new Map()
-
     allCards.forEach(card => {
       let rawCode = card.card_set_id || card.card_number || card.id || ''
       const cleanCode = rawCode.replace(/^OP-?0*(\d+)/i, (m, p1) => `OP${p1.padStart(2, '0')}`)
-
-      if (cleanCode.startsWith(setCode)) {
+      if (cleanCode) {
         cardsMap.set(cleanCode, card)
+        cardsMap.set(rawCode.toUpperCase(), card)
       }
     })
 
-    console.log(`✅ ${cardsMap.size} cartes trouvées pour ${setCode}.`)
     return cardsMap
-
   } catch (err) {
     console.error(`❌ Erreur optcgapi.com :`, err.message)
     return null
   }
 }
 
-// 2. Récupération des images HD depuis ProxyCardsTool
+// 2. Visuels ProxyCardsTool
 async function fetchProxyCardsImages(folderPath) {
-  console.log(`🌐 [2/3] Récupération des visuels HD sur ProxyCardsTool...`)
+  console.log(`🌐 [2/3] Récupération des visuels HD sur ProxyCardsTool pour ${folderPath}...`)
   const formData = new URLSearchParams()
   formData.append('action', 'pct_morpice_catalog')
   formData.append('game', 'One Piece')
@@ -120,14 +107,14 @@ async function fetchProxyCardsImages(folderPath) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+        'User-Agent': 'Mozilla/5.0'
       },
       body: formData
     })
 
     const result = await res.json()
     const items = result.data?.items || result.data?.cards || []
-    console.log(`🖼️ ${items.length} visuels HD récupérés.`)
+    console.log(`🖼️ ${items.length} visuels trouvés dans le dossier.`)
     return items
   } catch (err) {
     console.error(`❌ Erreur ProxyCardsTool :`, err.message)
@@ -135,55 +122,75 @@ async function fetchProxyCardsImages(folderPath) {
   }
 }
 
-// 3. Fusion et injection dans Supabase
-// 3. Fusion et injection dans Supabase
+// 3. Reconstitution et envoi vers Supabase
 async function rebuildSet(setCode, folderPath) {
-    console.log(`🚀 DEMARRAGE DE L'IMPORTATION COMPLETE POUR ${setCode}`)
+    console.log(`🚀 DEMARRAGE DE L'IMPORTATION POUR ${setCode}`)
 
-    const officialDataMap = await fetchOfficialCardData(setCode)
-    if (!officialDataMap || officialDataMap.size === 0) return
+    const globalDataMap = await fetchAllOfficialCards()
+    if (!globalDataMap) return
 
     const proxyItems = await fetchProxyCardsImages(folderPath)
     if (proxyItems.length === 0) return
 
     const altCounters = {}
+    const usedIds = new Set()
     const finalPayload = []
-    const usedIds = new Set() // Pour garantir l'unicité stricte des ID
 
     for (const item of proxyItems) {
-        const baseCode = item.codes?.[0]
-        if (!baseCode) continue
+        const baseCode = item.codes?.[0] || `CARD`
 
-        const official = officialDataMap.get(baseCode)
-        if (!official) continue
-
-        const isAlt = item.url.includes('/ALTS/') || item.name.includes('(') || item.name.includes('_')
-
-        let cardId = baseCode
-
-        // Si la carte est une alternative OU si la base existe déjà
-        if (isAlt || usedIds.has(baseCode)) {
-            altCounters[baseCode] = (altCounters[baseCode] || 0) + 1
-            cardId = `${baseCode}_ALT_${altCounters[baseCode]}`
+        let official = globalDataMap.get(baseCode)
+        if (!official) {
+            const normalized = baseCode.replace('-', '').toUpperCase()
+            for (const [k, v] of globalDataMap.entries()) {
+                if (k.replace('-', '').toUpperCase() === normalized) {
+                    official = v
+                    break
+                }
+            }
         }
 
-        // Sécurité supplémentaire : s'assure que l'ID n'est jamais en doublon
+        if (!official) {
+            official = {
+                card_name: item.name || baseCode,
+                rarity: 'SR',
+                card_type: 'CHARACTER'
+            }
+        }
+
+        // Évite le doublon "OP09_OP09" mais préfixe si la carte vient d'un autre set (ex: OP07)
+        let formattedBaseId = baseCode
+        if (!baseCode.startsWith(setCode)) {
+            formattedBaseId = `${setCode}_${baseCode}`
+        }
+
+        const isAlt = item.url.includes('/ALTS/') || item.name.includes('(') || item.name.includes('_')
+        let cardId = formattedBaseId
+
+        if (isAlt || usedIds.has(cardId)) {
+            altCounters[baseCode] = (altCounters[baseCode] || 0) + 1
+            cardId = `${formattedBaseId}_ALT_${altCounters[baseCode]}`
+        }
+
         while (usedIds.has(cardId)) {
             altCounters[baseCode] = (altCounters[baseCode] || 0) + 1
-            cardId = `${baseCode}_ALT_${altCounters[baseCode]}`
+            cardId = `${formattedBaseId}_ALT_${altCounters[baseCode]}`
         }
 
         usedIds.add(cardId)
 
-        const rawName = official.card_name || official.name
+        const rawName = official.card_name || official.name || baseCode
         const cleanName = cleanCardName(rawName)
         const rawEffect = official.card_text || official.effect || null
+
+        const isManga = checkIsManga(item.url, item.name)
+        const isSp = checkIsSp(item.url, item.name)
 
         finalPayload.push({
             id: cardId,
             name: cleanName,
             set_id: setCode,
-            rarity: official.rarity || null,
+            rarity: official.rarity || 'SR',
             type: official.card_type || null,
             color: official.card_color || null,
             power: official.card_power && official.card_power !== 'NULL' ? parseInt(official.card_power) : null,
@@ -192,22 +199,24 @@ async function rebuildSet(setCode, folderPath) {
             counter: official.counter_amount ? parseInt(official.counter_amount) : null,
             attribute: official.attribute || null,
             effect: cleanCardEffect(rawEffect),
-            image_url: item.url
+            image_url: item.url,
+            is_manga: isManga,
+            is_sp: isSp
         })
     }
 
     console.log(`🧹 Purge des anciennes données du set ${setCode} dans Supabase...`)
     await supabase.from('cards').delete().eq('set_id', setCode)
 
-    console.log(`💾 [3/3] Insertion de ${finalPayload.length} cartes nettoyées dans Supabase...`)
+    console.log(`💾 [3/3] Insertion de ${finalPayload.length} cartes dans Supabase pour ${setCode}...`)
     const { error } = await supabase.from('cards').insert(finalPayload)
 
     if (error) {
         console.error(`❌ Erreur Supabase :`, error.message)
     } else {
-        console.log(`🎉 SUCCÈS ! ${finalPayload.length} cartes de ${setCode} réimportées sans aucun doublon !`)
+        console.log(`🎉 SUCCÈS ! ${finalPayload.length} cartes importées proprement pour ${setCode} !`)
     }
 }
 
-// Lancement pour OP05
-rebuildSet('OP09', 'OnePiece/MorpiceRamadan/OP9')
+// Exécution
+rebuildSet('PRB02', 'OnePiece/MorpiceRamadan/PRB02')

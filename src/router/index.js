@@ -2,13 +2,17 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { supabase } from '../supabase'
 
 import AuthView from '../views/AuthView.vue'
+import HomeView from '../views/HomeView.vue'
 import CardsView from '../views/CardsView.vue'
 import BoosterView from '../views/BoosterView.vue'
+import DeckView from '../views/DeckView.vue'
 
 const routes = [
   {
     path: '/',
-    redirect: '/auth'
+    name: 'home',
+    component: HomeView,
+    meta: { requiresAuth: true }
   },
   {
     path: '/auth',
@@ -22,10 +26,24 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
-    path: '/booster',
-    name: 'booster',
+    path: '/gacha',
+    name: 'gacha',
     component: BoosterView,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/booster',
+    redirect: '/gacha'
+  },
+  {
+    path: '/decks',
+    name: 'decks',
+    component: DeckView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/deck',
+    redirect: '/decks'
   }
 ]
 
@@ -34,17 +52,18 @@ const router = createRouter({
   routes
 })
 
+// Navigation Guard de sécurité
 router.beforeEach(async (to, from, next) => {
   const { data: { user } } = await supabase.auth.getUser()
 
-  // 1. Visiteur NON connecté tentant d'accéder à une page protégée
+  // 1. Bloque les visiteurs non connectés
   if (to.meta.requiresAuth && !user) {
     return next('/auth')
   }
 
-  // 2. Utilisateur DÉJÀ connecté tentant d'aller sur la page d'authentification
+  // 2. Redirige un utilisateur déjà connecté qui essaie d'aller sur /auth
   if (to.path === '/auth' && user) {
-    return next('/cards')
+    return next('/')
   }
 
   next()

@@ -37,13 +37,13 @@ defineEmits(['click', 'delete'])
 .deck-card {
   position: relative;
   border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 20px;
-  padding: 20px;
+  border-radius: 16px;
+  padding: 12px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 260px;
+  min-height: 150px; /* Reduit la taille massive sur mobile */
   background-size: cover;
   background-position: center top;
   background-color: rgba(15, 23, 42, 0.6);

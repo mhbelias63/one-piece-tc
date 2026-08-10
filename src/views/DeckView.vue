@@ -512,7 +512,7 @@ onMounted(() => {
 .deck-page {
     max-width: 1280px;
     margin: 0 auto;
-    padding: 28px 24px 40px;
+    padding: 24px 20px 40px;
 }
 
 .deck-hero {
@@ -520,31 +520,34 @@ onMounted(() => {
     justify-content: space-between;
     align-items: flex-start;
     gap: 20px;
-    margin-bottom: 28px;
+    margin-bottom: 24px;
 }
 
 .eyebrow {
     color: #f59e0b;
     text-transform: uppercase;
     letter-spacing: 0.18em;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
+    font-size: 0.85rem;
 }
 
 .deck-hero h1 {
-    font-size: 2.8rem;
+    font-size: 2.2rem;
     color: #f8fafc;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
+    line-height: 1.1;
 }
 
 .hero-copy {
     color: #cbd5e1;
     max-width: 640px;
+    font-size: 0.95rem;
 }
 
 .search-actions {
     display: flex;
-    align-items: flex-end;
-    gap: 14px;
+    align-items: center;
+    gap: 10px;
     flex-wrap: wrap;
 }
 
@@ -553,13 +556,14 @@ onMounted(() => {
     align-items: center;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 16px;
-    padding: 10px 14px;
-    min-width: 260px;
+    border-radius: 14px;
+    padding: 8px 12px;
+    flex: 1;
+    min-width: 180px;
 }
 
 .search-icon {
-    margin-right: 10px;
+    margin-right: 8px;
     color: #94a3b8;
 }
 
@@ -569,7 +573,7 @@ onMounted(() => {
     border: none;
     outline: none;
     color: #f8fafc;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
 }
 
 .primary-btn,
@@ -579,24 +583,26 @@ onMounted(() => {
     border-radius: 999px;
     cursor: pointer;
     font-weight: 700;
+    font-size: 0.88rem;
+    white-space: nowrap;
 }
 
 .primary-btn {
     background: linear-gradient(90deg, #f59e0b, #fb923c);
     color: #111827;
-    padding: 12px 24px;
+    padding: 10px 18px;
 }
 
 .secondary-btn {
     background: rgba(255, 255, 255, 0.08);
     color: #f8fafc;
-    padding: 10px 18px;
+    padding: 10px 16px;
 }
 
 .delete-btn {
     background: #ef4444;
     color: #ffffff;
-    padding: 10px 20px;
+    padding: 10px 16px;
 }
 
 .delete-btn:disabled {
@@ -605,19 +611,19 @@ onMounted(() => {
 }
 
 .deck-dashboard {
-    margin-top: 18px;
+    margin-top: 14px;
 }
 
+/* GRILLE RESPONSIVE POUR DECK CARDS */
 .deck-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
 }
 
-/* STYLES MODE SÉLECTION */
 .deck-card-wrapper {
     position: relative;
-    border-radius: 20px;
+    border-radius: 16px;
     transition: all 0.2s ease;
 }
 
@@ -627,37 +633,37 @@ onMounted(() => {
 
 .deck-card-wrapper.selected {
     outline: 3px solid #ef4444;
-    border-radius: 20px;
+    border-radius: 16px;
 }
 
 .checkbox-badge {
     position: absolute;
-    top: 12px;
-    left: 12px;
+    top: 10px;
+    left: 10px;
     z-index: 10;
     background: rgba(15, 23, 42, 0.9);
-    padding: 6px;
-    border-radius: 8px;
+    padding: 4px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .checkbox-badge input {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     accent-color: #ef4444;
     cursor: pointer;
 }
 
 .deck-card-empty {
     border: 1px dashed rgba(255, 255, 255, 0.2);
-    border-radius: 20px;
+    border-radius: 16px;
     background: rgba(255, 255, 255, 0.02);
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 260px;
+    min-height: 180px;
     cursor: pointer;
 }
 
@@ -665,26 +671,31 @@ onMounted(() => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     color: #f8fafc;
+    font-size: 0.88rem;
 }
 
 .empty-icon {
-    font-size: 2.5rem;
+    font-size: 2rem;
     color: #f59e0b;
 }
 
 .deck-editor {
-    margin-top: 24px;
+    margin-top: 16px;
 }
 
 .editor-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 20px;
-    margin-bottom: 24px;
+    gap: 14px;
+    margin-bottom: 20px;
     color: #f8fafc;
+}
+
+.editor-header h2 {
+    font-size: 1.3rem;
 }
 
 .editor-body {
@@ -697,95 +708,159 @@ onMounted(() => {
 .catalog-panel {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 24px;
-    padding: 20px;
+    border-radius: 20px;
+    padding: 16px;
 }
 
 .panel-title {
     font-weight: 700;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     color: #f8fafc;
+    font-size: 0.95rem;
 }
 
+/* LEADER CENTRÉ ET PROPORTIONNÉ */
 .leader-slot {
-    min-height: 180px;
+    min-height: 160px;
     border: 1px dashed rgba(255, 255, 255, 0.2);
-    border-radius: 20px;
+    border-radius: 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 16px;
+    padding: 12px;
     cursor: pointer;
     background: rgba(255, 255, 255, 0.02);
+    margin: 0 auto 16px auto;
+    width: 100%;
 }
 
 .leader-img-wrapper {
-    width: 120px;
-    height: 168px;
-    border-radius: 12px;
+    width: 110px;
+    height: 154px;
+    border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
     margin-bottom: 8px;
 }
 
 .leader-img-wrapper img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain; /* Conserve le ratio sans rogner */
 }
 
 .leader-info {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
     color: #f8fafc;
+    font-size: 0.85rem;
 }
 
 .leader-placeholder {
     color: #94a3b8;
+    font-size: 0.85rem;
 }
 
 .deck-cards-fan-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 20px;
-    max-height: 500px;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 12px;
+    max-height: 480px;
     overflow-y: auto;
-    padding-top: 10px;
+    padding-top: 6px;
+    justify-items: center;
 }
 
 .empty-list {
     color: #94a3b8;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     grid-column: 1 / -1;
+    text-align: center;
 }
 
 .catalog-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 14px;
-    margin-bottom: 18px;
+    gap: 10px;
+    margin-bottom: 14px;
     color: #f8fafc;
 }
 
-.catalog-search {
-    margin-bottom: 18px;
+.catalog-header h3 {
+    font-size: 1.1rem;
 }
 
+.catalog-header p {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.catalog-search {
+    margin-bottom: 14px;
+}
+
+/* GRILLE DU CATALOGUE : 2 COLONNES SUR MOBILE */
 .card-catalog-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px;
     max-height: 520px;
     overflow-y: auto;
 }
 
-@media (max-width: 1000px) {
+/* ADAPTATIONS MOBILES PARTICULIÈRES (< 768px) */
+@media (max-width: 768px) {
+    .deck-page {
+        padding: 12px 10px 80px 10px;
+    }
+
+    .deck-hero {
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .deck-hero h1 {
+        font-size: 1.6rem;
+    }
+
+    .hero-copy {
+        font-size: 0.85rem;
+    }
+
+    .search-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    /* Grille de 2 decks côte à côte sur écran mobile */
+    .deck-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .deck-card-empty {
+        min-height: 140px;
+    }
+
     .editor-body {
         grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .deck-current-panel,
+    .catalog-panel {
+        padding: 12px;
+    }
+
+    /* Catalogue en 2-3 colonnes propres */
+    .card-catalog-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
     }
 }
 </style>

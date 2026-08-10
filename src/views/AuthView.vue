@@ -125,7 +125,8 @@ async function handleSubmit() {
     if (error) {
       alert(`Erreur de connexion : ${error.message}`)
     } else {
-      router.push('/')
+      // REDIRECTION DIRECTE VERS LA COLLECTION APRES CONNEXION
+      await router.push('/cards')
     }
   }
 

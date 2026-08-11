@@ -37,13 +37,16 @@ export async function fetchUserDecks() {
 // 3. Sauvegarder/mettre à jour un deck sur Supabase
 export async function saveUserDeck(deck) {
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+  if (!user) {
+    console.warn('Utilisateur non connecté : sauvegarde Supabase annulée.')
+    return null
+  }
 
   const payload = {
-    id: deck.id, // On conserve STRICTEMENT l'ID unique du deck
+    id: deck.id,
     user_id: user.id,
     name: deck.name,
-    leader: deck.leader, // On enregistre le leader
+    leader: deck.leader,
     cards: deck.cards,
     updated_at: new Date().toISOString()
   }
@@ -54,7 +57,11 @@ export async function saveUserDeck(deck) {
     .select()
     .single()
 
-  if (error) console.error('Erreur sauvegarde deck :', error)
+  if (error) {
+    console.error('Erreur Supabase lors de la sauvegarde du deck :', error.message, error.details)
+  } else {
+    console.log('Deck sauvegardé avec succès sur Supabase !', data)
+  }
   return data
 }
 

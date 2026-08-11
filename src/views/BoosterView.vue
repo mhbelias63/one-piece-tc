@@ -47,6 +47,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { supabase } from '../supabase'
+import { fetchCardsCached } from '../services/playerService'
 
 import BoosterSelectStage from '../components/booster/BoosterSelectStage.vue'
 import BoosterRevealStage from '../components/booster/BoosterRevealStage.vue'
@@ -79,7 +80,7 @@ const boosterModules = import.meta.glob('../assets/images/booster/*.{webp,png,jp
 const boosterList = computed(() => {
   const list = []
   for (const path in boosterModules) {
-    const filename = path.split('/').pop().replace(/\.(webp|png|jpg,jpeg)$/i, '')
+    const filename = path.split('/').pop().replace(/\.(webp|png|jpg|jpeg)$/i, '')
     const dashIndex = filename.indexOf('-')
     if (dashIndex === -1) continue
 
@@ -109,9 +110,10 @@ const isCurrentSetEmpty = computed(() => {
   return allDatabaseCards.value.filter(card => card && card.set_id && card.image_url && String(card.set_id).replace('-', '').toLowerCase() === normalizedSelectedSet).length === 0
 })
 
+// OPTIMISATION 1 : Utilisation du cache global au lieu de re-télécharger les 207 kB
 async function loadCards() {
-  const { data, error } = await supabase.from('cards').select('*')
-  if (!error && data) {
+  const data = await fetchCardsCached()
+  if (data) {
     allDatabaseCards.value = data.filter(c => c && c.image_url && String(c.image_url).trim() !== '')
   }
 }
@@ -151,15 +153,17 @@ async function openPack() {
 
   const price = selectedView.value === 'booster' ? 100 : 2400
 
-  // 🛑 OPTIMISATION CRUCIALE : VÉRIFICATION LOCALE AVANT TOUT APPEL RÉSEAU
+  // 🛑 OPTIMISATION 2 : VÉRIFICATION LOCALE DU SOLDE (0 requête si pas assez de gemmes)
   if (props.userGems < price) {
     alert("Tu n'as pas assez de gemmes pour cet achat !")
-    return // On stoppe immédiatement : 0 requête réseau consommée !
+    return
   }
 
   opening.value = true
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // OPTIMISATION 3 : getSession() au lieu de getUser() pour économiser un appel réseau
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
   if (!user) {
     alert("Tu dois être connecté pour ouvrir des boosters !")
     opening.value = false
@@ -177,7 +181,7 @@ async function openPack() {
     return
   }
 
-  // Double sécurité serveur
+  // Sécurité côté serveur
   const { data: success, error: gemError } = await supabase.rpc('deduct_gems', { user_id: user.id, amount: price })
 
   if (gemError || !success) {

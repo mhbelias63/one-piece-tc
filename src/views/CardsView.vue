@@ -4,10 +4,10 @@
       <!-- HEADER DE LA PAGE -->
       <div class="page-header">
         <div>
-          <h1>{{ isRecentMode ? 'CARTES RÉCENTES (290 MAX)' : 'MA COLLECTION' }}</h1>
-          <p>
-            {{ isRecentMode ? 'Tes derniers tirages de cartes' : (viewMode === 'sets' ? 'Progression par extension' : (selectedSet === 'ALL' ? 'Toutes les cartes' : `Cartes du set ${selectedSet}`)) }}
-            <span>• {{ viewMode === 'sets' ? `${allSetsStats.length} extensions` : `${filteredCards.length} cartes` }}</span>
+          <h1>{{ isRecentMode ? 'CARTES RÉCENTES' : 'MA COLLECTION' }}</h1>
+          <p class="header-subtitle">
+            {{ isRecentMode ? 'Derniers tirages' : (viewMode === 'sets' ? 'Progression par extension' : (selectedSet === 'ALL' ? 'Toutes les cartes' : `Set ${selectedSet}`)) }}
+            <span>• {{ viewMode === 'sets' ? `${allSetsStats.length} sets` : `${filteredCards.length} cartes` }}</span>
           </p>
         </div>
 
@@ -16,7 +16,7 @@
             <div class="progress-title-row">
               <strong>Progression globale</strong>
               <button class="toggle-view-btn" @click="toggleViewMode">
-                {{ viewMode === 'grid' ? 'Voir par set' : 'Voir toutes les cartes' }}
+                {{ viewMode === 'grid' ? 'Par set' : 'Toutes' }}
               </button>
             </div>
             <span>{{ collectionLabel }}</span>
@@ -68,32 +68,40 @@
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="Rechercher une carte par nom, effet ou trait..."
+              placeholder="Rechercher nom, effet..."
               class="search-input"
             />
             <button v-if="searchQuery" @click="searchQuery = ''" class="clear-search">×</button>
           </div>
 
-          <select v-model="sortMode" class="select-field">
-            <option value="id">Trier par numéro</option>
-            <option value="recent">Plus récentes d'abord</option>
-            <option value="name">Trier par nom</option>
-            <option value="rarity">Trier par rareté</option>
-            <option value="cost">Trier par coût</option>
-          </select>
+          <div class="selects-row">
+            <select v-model="sortMode" class="select-field">
+              <option value="id">Trier par numéro</option>
+              <option value="recent">Plus récentes d'abord</option>
+              <option value="name">Trier par nom</option>
+              <option value="rarity">Trier par rareté</option>
+              <option value="cost">Trier par coût</option>
+            </select>
 
-          <!-- FILTRE PAR TYPE -->
-          <div class="filter-group">
+            <!-- STYLE DE CARTE (DESKTOP: BOUTONS, MOBILE: SELECT) -->
+            <select v-model="selectedType" class="select-field mobile-only-select">
+              <option value="all">Tous les styles</option>
+              <option value="standard">Classiques</option>
+              <option value="parallel">Alternatives</option>
+            </select>
+          </div>
+
+          <div class="filter-group desktop-only-flex">
             <button @click="selectedType = 'all'" :class="['filter-btn', { active: selectedType === 'all' }]">Tous les styles</button>
             <button @click="selectedType = 'standard'" :class="['filter-btn', { active: selectedType === 'standard' }]">Classiques</button>
             <button @click="selectedType = 'parallel'" :class="['filter-btn', { active: selectedType === 'parallel' }]">Alternatives</button>
           </div>
         </div>
 
-        <!-- FILTRES SECONDAIRES -->
+        <!-- FILTRES SECONDAIRES (CARROUSEL HORIZONTAL SUR MOBILE) -->
         <div class="secondary-filters">
           <!-- FILTRE DE POSSESSION -->
-          <div class="filter-pill-group">
+          <div class="filter-scroll-row">
             <button @click="setOwnershipFilter('all')" :class="['chip', { active: selectedOwnership === 'all' && !isRecentMode }]">Toutes</button>
             <button @click="setOwnershipFilter('owned')" :class="['chip', 'highlight-owned', { active: selectedOwnership === 'owned' && !isRecentMode }]">Possédées</button>
             <button @click="setOwnershipFilter('unowned')" :class="['chip', { active: selectedOwnership === 'unowned' && !isRecentMode }]">Non possédées</button>
@@ -101,7 +109,7 @@
           </div>
 
           <!-- MULTI-SÉLECTION COULEURS -->
-          <div class="filter-pill-group">
+          <div class="filter-scroll-row">
             <button @click="resetColors" :class="['chip', { active: selectedColors.length === 0 }]">Toutes couleurs</button>
             <button @click="toggleColor('red')" :class="['chip', { active: selectedColors.includes('red') }]">Rouge</button>
             <button @click="toggleColor('blue')" :class="['chip', { active: selectedColors.includes('blue') }]">Bleu</button>
@@ -113,7 +121,7 @@
 
           <!-- MULTI-SÉLECTION RARETÉS + MENU OPTIONS À DROITE -->
           <div class="rarity-options-row">
-            <div class="filter-pill-group">
+            <div class="filter-scroll-row">
               <button @click="resetRarities" :class="['chip', { active: selectedRarities.length === 0 }]">Toutes raretés</button>
               <button @click="toggleRarity('SEC')" :class="['chip', { active: selectedRarities.includes('SEC') }]">SEC</button>
               <button @click="toggleRarity('SR')" :class="['chip', { active: selectedRarities.includes('SR') }]">SR</button>
@@ -640,17 +648,33 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* ALIGNEMENT ET STYLE DE L'ICÔNE FLATICON */
+/* RANGER LES FILTRES SUR UNE SEULE LIGNE DÉROULANTE EN HORIZONTAL */
+.filter-scroll-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.filter-scroll-row::-webkit-scrollbar {
+  display: none;
+}
+
 .rarity-options-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   width: 100%;
 }
 
 .display-menu-wrapper {
   position: relative;
+  flex-shrink: 0;
 }
 
 .settings-icon-btn {
@@ -834,7 +858,7 @@ onMounted(async () => {
   letter-spacing: 0.04em;
 }
 
-.page-header p {
+.header-subtitle {
   color: #94a3b8;
   margin-top: 4px;
   font-size: 0.9rem;
@@ -954,7 +978,7 @@ onMounted(async () => {
   padding: 14px;
 }
 
-.search-box { position: relative; flex: 1; min-width: 260px; }
+.search-box { position: relative; flex: 1; min-width: 200px; }
 
 .search-input {
   width: 100%;
@@ -981,17 +1005,23 @@ onMounted(async () => {
   cursor: pointer;
 }
 
+.selects-row {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+
 .select-field {
   background: #0d111a;
   border: 1px solid #273447;
   color: #f8fafc;
   border-radius: 12px;
   padding: 10px 12px;
-  min-width: 170px;
+  flex: 1;
   font-size: 0.85rem;
 }
 
-.filter-group, .filter-pill-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.filter-group { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .filter-btn, .chip {
   border: 1px solid #273447;
@@ -1003,6 +1033,7 @@ onMounted(async () => {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .filter-btn.active, .chip.active {
@@ -1017,7 +1048,10 @@ onMounted(async () => {
   color: #0d111a;
 }
 
-.secondary-filters { display: flex; flex-direction: column; gap: 12px; }
+.secondary-filters { display: flex; flex-direction: column; gap: 10px; }
+
+.mobile-only-select { display: none; }
+.desktop-only-flex { display: flex; }
 
 .loading, .empty-state {
   padding: 36px;
@@ -1213,15 +1247,26 @@ onMounted(async () => {
   cursor: pointer;
 }
 
+/* MEDIAS QUERIES SPÉCIFIQUES MOBILE ET ADAPTATION */
 @media (max-width: 1200px) {
   .collection-shell { grid-template-columns: 1fr; }
   .side-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (max-width: 900px) {
-  .page-header { flex-direction: column; align-items: flex-start; }
-  .progress-card { min-width: 100%; }
-  .card-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
-  .side-panel { grid-template-columns: 1fr; }
+@media (max-width: 768px) {
+  .page-header { flex-direction: column; align-items: stretch; gap: 12px; }
+  .page-header h1 { font-size: 1.4rem; }
+  .progress-card { min-width: 0; width: 100%; padding: 10px 12px; }
+
+  .filter-bar { padding: 10px; gap: 8px; }
+  .search-box { min-width: 100%; }
+  
+  .desktop-only-flex { display: none !important; }
+  .mobile-only-select { display: block !important; }
+
+  .selects-row { width: 100%; }
+
+  .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .side-panel { display: none; }
 }
 </style>

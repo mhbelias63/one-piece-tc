@@ -340,6 +340,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../supabase'
+import { fetchCardsCached } from '../services/playerService'
 import CardModal from '../components/CardModal.vue'
 
 const route = useRoute()
@@ -428,19 +429,18 @@ function toggleViewMode() {
   viewMode.value = viewMode.value === 'grid' ? 'sets' : 'grid'
 }
 
+// OPTIMISATION 1 : Utilisation du cache global des cartes
 async function loadFullCatalog() {
   loading.value = true
-  const { data, error } = await supabase.from('cards').select('*')
-  if (!error && data) {
-    allCatalogCards.value = data
-  } else {
-    allCatalogCards.value = []
-  }
+  allCatalogCards.value = await fetchCardsCached()
   loading.value = false
 }
 
+// OPTIMISATION 2 : Utilisation de getSession() pour éviter l'appel réseau vers user
 async function loadUserCollection() {
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  
   if (!user) {
     ownedCardIds.value = new Set()
     cardQuantities.value = new Map()
@@ -466,9 +466,12 @@ async function loadUserCollection() {
   cardQuantities.value = qMap
 }
 
+// OPTIMISATION 3 : getSession() pour la récupération des cartes récentes
 async function fetch290RecentCards() {
   loading.value = true
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  
   if (!user) {
     loading.value = false
     return
@@ -658,8 +661,7 @@ watch(
       isRecentMode.value = false
       selectedSet.value = query.set || 'ALL'
     }
-  },
-  { immediate: true }
+  }
 )
 
 onMounted(async () => {

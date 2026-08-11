@@ -1,0 +1,21 @@
+{
+  "short_name": "One Piece TC",
+  "name": "One Piece TC",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#060816",
+  "theme_color": "#060816",
+  "display": "standalone",
+  "orientation": "portrait"
+}

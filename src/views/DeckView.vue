@@ -408,13 +408,30 @@ function persistLocalDecks() {
 
 async function loadDecks() {
     loading.value = true
+    
+    // 1. On tente de charger les decks distants Supabase
     const remoteDecks = await fetchUserDecks()
+    
+    // Si la BDD renvoie des decks, on les affiche
     if (remoteDecks && remoteDecks.length > 0) {
         decks.value = remoteDecks
     } else {
+        // Sinon, secours sur le localStorage
         const raw = window.localStorage.getItem('onepiece-decks')
         if (raw) {
-            try { decks.value = JSON.parse(raw) } catch { decks.value = [] }
+            try { 
+                decks.value = JSON.parse(raw) 
+                
+                // Si on a trouvé des decks locaux, on tente de les pousser sur Supabase !
+                const { data: { user } } = await supabase.auth.getUser()
+                if (user) {
+                    for (const localDeck of decks.value) {
+                        await saveUserDeck(localDeck)
+                    }
+                }
+            } catch { 
+                decks.value = [] 
+            }
         }
     }
     loading.value = false
@@ -456,9 +473,14 @@ async function createDeck(name) {
         leader: null,
         cards: []
     }
+    
+    // Ajout local
     decks.value.push(newDeck)
+    
+    // Sauvegarde immédiate sur Supabase
     await saveUserDeck(newDeck)
     persistLocalDecks()
+    
     showCreateModal.value = false
     openEditor(newDeck.id)
 }

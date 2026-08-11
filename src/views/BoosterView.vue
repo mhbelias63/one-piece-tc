@@ -47,20 +47,22 @@
                     <button class="nav-arrow right" type="button" @click="nextSet" title="Set suivant">›</button>
                 </div>
 
-                <div class="cta-block">
-                    <button class="open-btn" type="button" :disabled="opening || isCurrentSetEmpty" @click="openPack">
-                        <img src="/gem.png" alt="Gem" class="gem-icon" />
-                        {{ selectedView === 'booster' ? 100 : 2400 }}
-                    </button>
-                    <span v-if="isCurrentSetEmpty" class="empty-warning">Ce set n'a pas encore de cartes disponibles</span>
-                    <span v-else>{{ opening ? 'Traitement en cours...' : 'Cliquer pour ouvrir' }}</span>
-                </div>
+                <div class="bottom-actions-group">
+                    <div class="cta-block">
+                        <button class="open-btn" type="button" :disabled="opening || isCurrentSetEmpty" @click="openPack">
+                            <img src="/gem.png" alt="Gem" class="gem-icon" />
+                            {{ selectedView === 'booster' ? 100 : 2400 }}
+                        </button>
+                        <span v-if="isCurrentSetEmpty" class="empty-warning">Ce set n'a pas encore de cartes disponibles</span>
+                        <span v-else>{{ opening ? 'Traitement en cours...' : 'Cliquer pour ouvrir' }}</span>
+                    </div>
 
-                <!-- BOUTON MODALE SETS -->
-                <div class="set-selector">
-                    <button class="secondary-btn" type="button" @click="showSetModal = true">
-                        🔍 Voir tous les sets
-                    </button>
+                    <!-- BOUTON MODALE SETS -->
+                    <div class="set-selector">
+                        <button class="secondary-btn" type="button" @click="showSetModal = true">
+                            🔍 Voir tous les sets
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -310,7 +312,6 @@ function selectSetFromModal(code) {
 
 const visibleStack = computed(() => drawnCards.value.slice(currentIndex.value))
 
-// --- TRI STRICT ET HIÉRARCHIQUE DES CARTES OBTENUES ---
 const sortedDrawnCards = computed(() => {
     return [...drawnCards.value].sort((a, b) => {
         const getRank = (card) => {
@@ -322,13 +323,13 @@ const sortedDrawnCards = computed(() => {
             if (rarity === 'SEC' && alt) return 3
             if (rarity === 'SEC') return 4
             if (rarity === 'SR' && alt) return 5
-            if (rarity === 'L' && alt) return 6  // Leader Alternative
-            if (alt) return 7                    // Alternatives R, UC, C
+            if (rarity === 'L' && alt) return 6
+            if (alt) return 7
             if (rarity === 'SR') return 8
             if (rarity === 'R') return 9
             if (rarity === 'UC') return 10
             if (rarity === 'C') return 11
-            if (rarity === 'L') return 12        // Leader basique
+            if (rarity === 'L') return 12
             return 13
         }
         return getRank(a) - getRank(b)
@@ -376,7 +377,6 @@ async function openPack() {
         return
     }
 
-    // --- 1. CLASSIFICATION DES POOLS DE CARTES ---
     const mangaPool = available.filter(c => c.is_manga === true)
     const spPool = available.filter(c => c.is_sp === true && !c.is_manga)
     
@@ -391,43 +391,32 @@ async function openPack() {
         return cardsList[Math.floor(Math.random() * cardsList.length)]
     }
 
-    // --- 2. LOGIQUE DU SLOT HIT SPÉCIAL (CARTE 12) ---
     const drawSpecialSlot = () => {
         const rand = Math.random() * 100
 
-        // 1. MANGA (0.1%)
         if (rand < 0.1 && mangaPool.length > 0) return getRandomCard(mangaPool)
-        
-        // 2. SP (1.5%)
         if (rand < 1.6 && spPool.length > 0) return getRandomCard(spPool)
 
-        // 3. SEC Alternate (3.5%)
         if (rand < 5.1) {
             const secAlts = altPool.filter(c => getRarity(c) === 'SEC')
             if (secAlts.length > 0) return getRandomCard(secAlts)
         }
 
-        // 4. SR Alternate (15%)
         if (rand < 20.1) {
             const srAlts = altPool.filter(c => getRarity(c) === 'SR')
             if (srAlts.length > 0) return getRandomCard(srAlts)
         }
 
-        // 5. Alternatives Rares ou Leaders Alt
         const allAlts = [...altPool, ...leaderPoolAlt]
         return getRandomCard(allAlts.length > 0 ? allAlts : standardPool)
     }
 
-    // --- 3. TIRAGE DES BOOSTERS ---
     const pack = []
     const dbInserts = []
     const numPacks = selectedView.value === 'booster' ? 1 : 24
 
     for (let p = 0; p < numPacks; p++) {
-        // Détection God Pack (0.1% = 1 chance sur 1000)
         const isGodPack = Math.random() * 100 < 0.1
-
-        // 50% de chance d'avoir UN Leader max dans le booster
         const hasLeader = Math.random() < 0.5
         const leaderSlotIndex = 5 
 
@@ -435,7 +424,6 @@ async function openPack() {
             let drawnCard;
 
             if (isGodPack) {
-                // ==================== GOD PACK ====================
                 if (i === 11) {
                     drawnCard = mangaPool.length > 0 ? getRandomCard(mangaPool) : getRandomCard(altPool)
                 } else if (i === 10) {
@@ -446,7 +434,6 @@ async function openPack() {
                     drawnCard = getRandomCard(altPool.length > 0 ? altPool : available)
                 }
             } else {
-                // ================= BOOSTER NORMAL =================
                 if (i === 11) {
                     drawnCard = drawSpecialSlot()
                 } else if (i === 10) {
@@ -555,20 +542,23 @@ function onImageError(event) {
 .booster-page {
     width: 100%;
     height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .booster-shell {
     position: relative;
     width: 100%;
-    height: calc(100vh - 100px);
-    max-height: calc(100vh - 100px);
+    height: 100%;
+    flex: 1;
+    min-height: 0;
     border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     background:
         radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.18), transparent 34%),
         linear-gradient(135deg, #060816 0%, #0c1429 100%);
     overflow: hidden;
-    padding: 12px 20px;
+    padding: 16px 20px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -579,7 +569,9 @@ function onImageError(event) {
     display: flex;
     flex-direction: column;
     height: 100%;
+    flex: 1;
     justify-content: space-between;
+    align-items: center;
 }
 
 .hero-topbar,
@@ -625,7 +617,7 @@ function onImageError(event) {
 
 .hero-copy {
     text-align: center;
-    margin-top: 2px;
+    margin-top: 4px;
 }
 
 .eyebrow {
@@ -649,12 +641,16 @@ function onImageError(event) {
     font-size: 0.8rem;
 }
 
+/* ZONE DU CARROUSEL : ÉTIRÉE VERTICALEMENT SUR LE VIDE */
 .pack-stage {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 20px;
-    margin: 4px 0;
+    gap: 16px;
+    flex: 1;
+    width: 100%;
+    margin: 8px 0;
+    min-height: 0;
 }
 
 .pack-container {
@@ -662,17 +658,20 @@ function onImageError(event) {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
+    height: 100%;
+    max-height: 100%;
 }
 
 .set-code-badge {
-    margin-top: 6px;
+    margin-top: 8px;
     background: rgba(245, 158, 11, 0.16);
     border: 1px solid rgba(245, 158, 11, 0.4);
     color: #fcd34d;
-    padding: 2px 12px;
+    padding: 2px 14px;
     border-radius: 999px;
     font-weight: 800;
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     letter-spacing: 0.05em;
     z-index: 5;
 }
@@ -681,8 +680,8 @@ function onImageError(event) {
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.12);
     color: #f8fafc;
-    width: 40px;
-    height: 40px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
     font-size: 1.5rem;
     cursor: pointer;
@@ -690,6 +689,7 @@ function onImageError(event) {
     place-items: center;
     transition: all 0.2s ease;
     z-index: 10;
+    flex-shrink: 0;
 }
 
 .nav-arrow:hover {
@@ -701,8 +701,8 @@ function onImageError(event) {
 
 .pack-shiny-glow {
     position: absolute;
-    width: 350px;
-    height: 440px;
+    width: 320px;
+    height: 400px;
     border-radius: 50%;
     background: radial-gradient(circle,
             rgba(250, 204, 21, 0.35) 0%,
@@ -714,8 +714,10 @@ function onImageError(event) {
 
 .pack-card {
     position: relative;
-    width: 320px;
-    height: 420px;
+    width: auto;
+    height: 100%;
+    max-height: 420px;
+    aspect-ratio: 3 / 4.2;
     border: none;
     background: transparent;
     display: flex;
@@ -740,7 +742,16 @@ function onImageError(event) {
     width: 100%;
     height: 100%;
     object-fit: contain;
-    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.6));
+    filter: drop-shadow(0 15px 25px rgba(0, 0, 0, 0.65));
+}
+
+.bottom-actions-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: auto;
+    padding-bottom: 4px;
 }
 
 .cta-block {
@@ -808,7 +819,6 @@ function onImageError(event) {
 
 .set-selector {
     text-align: center;
-    margin-top: 2px;
 }
 
 /* MODALE SÉLECTION SETS */
@@ -1083,7 +1093,7 @@ function onImageError(event) {
     object-fit: cover;
 }
 
-/* DESIGN DES BADGES DE RARETÉ */
+/* DESIGN DES BADGES DE RARETÉS */
 .badge-tag {
     position: absolute;
     top: 4px;
@@ -1130,17 +1140,25 @@ function onImageError(event) {
     border-radius: 16px;
 }
 
+/* MEDIA QUERIES MOBILE : DÉPLOIEMENT À 100% DE LA HAUTEUR */
 @media (max-width: 768px) {
     .booster-shell {
-        height: auto;
-        max-height: none;
+        height: 100%;
+        max-height: 100%;
+        padding: 12px 14px;
+    }
+    .pack-stage {
+        margin: 4px 0;
     }
     .pack-card {
-        width: 220px;
-        height: 300px;
+        max-height: 50vh;
+    }
+    .pack-shiny-glow {
+        width: 280px;
+        height: 360px;
     }
     .hero-copy h1 {
-        font-size: 1.4rem;
+        font-size: 1.35rem;
     }
     .nav-arrow {
         width: 36px;

@@ -394,8 +394,13 @@ html, body {
 
   .topbar {
     padding: 0 8px;
+    
+    /* Marge automatique pour pousser sous la Dynamic Island / l'encoche iOS */
+    padding-top: env(safe-area-inset-top);
+    /* On adapte la hauteur pour qu'elle s'agrandisse selon la zone réservée de l'iPhone */
+    height: calc(52px + env(safe-area-inset-top));
+    
     gap: 4px;
-    height: 52px;
   }
 
   .user-badge {

@@ -87,16 +87,10 @@ function selectSet(setId) {
     justify-content: space-between;
     align-items: center;
     padding: 8px 24px;
-    
-    /* 1. On ajuste le padding supérieur pour la Dynamic Island / l'encoche iOS */
-    padding-top: calc(env(safe-area-inset-top) + 8px); 
-    
     background-color: #121212;
     color: #fff;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    
-    /* 2. On change height en min-height pour que le header puisse s'agrandir avec le padding */
-    min-height: 60px; 
+    height: 60px;
 }
 
 .brand {

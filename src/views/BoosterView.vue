@@ -37,17 +37,17 @@
                             <img v-if="currentPackImage" :src="currentPackImage" :alt="currentBoosterMeta.title" class="pack-image" />
                             <div v-else class="placeholder-pack">Image non disponible</div>
                         </button>
-
-                        <!-- CODE DU SET SOUS LE BOOSTER -->
-                        <div class="set-code-badge">
-                            {{ currentBoosterMeta.setCode }}
-                        </div>
                     </div>
 
                     <button class="nav-arrow right" type="button" @click="nextSet" title="Set suivant">›</button>
                 </div>
 
                 <div class="bottom-actions-group">
+                    <!-- CODE DU SET PLACÉ PROPREMENT AU-DESSUS DU BOUTON -->
+                    <div class="set-code-badge">
+                        {{ currentBoosterMeta.setCode }}
+                    </div>
+
                     <div class="cta-block">
                         <button class="open-btn" type="button" :disabled="opening || isCurrentSetEmpty" @click="openPack">
                             <img src="/gem.png" alt="Gem" class="gem-icon" />
@@ -641,7 +641,7 @@ function onImageError(event) {
     font-size: 0.8rem;
 }
 
-/* ZONE DU CARROUSEL : ÉTIRÉE VERTICALEMENT SUR LE VIDE */
+/* ZONE DU CARROUSEL : ÉTIRÉE VERTICALEMENT SANS DÉBORDER */
 .pack-stage {
     display: flex;
     justify-content: center;
@@ -649,7 +649,7 @@ function onImageError(event) {
     gap: 16px;
     flex: 1;
     width: 100%;
-    margin: 8px 0;
+    margin: 4px 0;
     min-height: 0;
 }
 
@@ -661,19 +661,6 @@ function onImageError(event) {
     justify-content: center;
     height: 100%;
     max-height: 100%;
-}
-
-.set-code-badge {
-    margin-top: 8px;
-    background: rgba(245, 158, 11, 0.16);
-    border: 1px solid rgba(245, 158, 11, 0.4);
-    color: #fcd34d;
-    padding: 2px 14px;
-    border-radius: 999px;
-    font-weight: 800;
-    font-size: 0.8rem;
-    letter-spacing: 0.05em;
-    z-index: 5;
 }
 
 .nav-arrow {
@@ -701,8 +688,8 @@ function onImageError(event) {
 
 .pack-shiny-glow {
     position: absolute;
-    width: 320px;
-    height: 400px;
+    width: 300px;
+    height: 360px;
     border-radius: 50%;
     background: radial-gradient(circle,
             rgba(250, 204, 21, 0.35) 0%,
@@ -716,7 +703,7 @@ function onImageError(event) {
     position: relative;
     width: auto;
     height: 100%;
-    max-height: 420px;
+    max-height: 360px;
     aspect-ratio: 3 / 4.2;
     border: none;
     background: transparent;
@@ -745,13 +732,26 @@ function onImageError(event) {
     filter: drop-shadow(0 15px 25px rgba(0, 0, 0, 0.65));
 }
 
+/* BLOC ACTION BAS DE PAGE AVEC MAINTIEN DES ESPACES */
 .bottom-actions-group {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     margin-top: auto;
-    padding-bottom: 4px;
+    padding-bottom: 2px;
+    z-index: 10;
+}
+
+.set-code-badge {
+    background: rgba(245, 158, 11, 0.16);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    color: #fcd34d;
+    padding: 3px 14px;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
 }
 
 .cta-block {
@@ -1140,30 +1140,21 @@ function onImageError(event) {
     border-radius: 16px;
 }
 
-/* MEDIA QUERIES MOBILE : DÉPLOIEMENT À 100% DE LA HAUTEUR */
+/* MEDIA QUERIES MOBILE */
 @media (max-width: 768px) {
     .booster-shell {
         height: 100%;
         max-height: 100%;
         padding: 12px 14px;
     }
-    .pack-stage {
-        margin: 4px 0;
-    }
     .pack-card {
-        max-height: 50vh;
-    }
-    .pack-shiny-glow {
-        width: 280px;
-        height: 360px;
+        max-height: 38vh;
     }
     .hero-copy h1 {
         font-size: 1.35rem;
     }
-    .nav-arrow {
-        width: 36px;
-        height: 36px;
-        font-size: 1.3rem;
+    .bottom-actions-group {
+        gap: 8px;
     }
 }
 </style>

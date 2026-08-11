@@ -89,7 +89,7 @@
               <option value="parallel">Alternatives</option>
             </select>
 
-            <!-- BOUTON ACCORDÉON DE FILTRES POUR MOBILE -->
+            <!-- BOUTON FILTRES MOBILE (BIEN CALÉ À DROITE) -->
             <button class="mobile-filter-toggle-btn" @click="showMobileFilters = !showMobileFilters">
               <span>Filtres</span>
               <span>{{ showMobileFilters ? '▲' : '▼' }}</span>
@@ -103,70 +103,87 @@
           </div>
         </div>
 
-        <!-- FILTRES SECONDAIRES (MASQUÉS SUR MOBILE SAUF SI CLIQUÉ) -->
+        <!-- FILTRES SECONDAIRES SOUS FORME DE CARTES SECTORISÉES -->
         <div class="secondary-filters" :class="{ 'mobile-hidden': !showMobileFilters }">
-          <!-- FILTRE DE POSSESSION -->
-          <div class="filter-scroll-row">
-            <button @click="setOwnershipFilter('all')" :class="['chip', { active: selectedOwnership === 'all' && !isRecentMode }]">Toutes</button>
-            <button @click="setOwnershipFilter('owned')" :class="['chip', 'highlight-owned', { active: selectedOwnership === 'owned' && !isRecentMode }]">Possédées</button>
-            <button @click="setOwnershipFilter('unowned')" :class="['chip', { active: selectedOwnership === 'unowned' && !isRecentMode }]">Non possédées</button>
-            <button @click="switchToRecentMode" :class="['chip', 'chip-recent', { active: isRecentMode }]">🕒 Récents (290)</button>
-          </div>
-
-          <!-- MULTI-SÉLECTION COULEURS -->
-          <div class="filter-scroll-row">
-            <button @click="resetColors" :class="['chip', { active: selectedColors.length === 0 }]">Toutes couleurs</button>
-            <button @click="toggleColor('red')" :class="['chip', { active: selectedColors.includes('red') }]">Rouge</button>
-            <button @click="toggleColor('blue')" :class="['chip', { active: selectedColors.includes('blue') }]">Bleu</button>
-            <button @click="toggleColor('green')" :class="['chip', { active: selectedColors.includes('green') }]">Vert</button>
-            <button @click="toggleColor('purple')" :class="['chip', { active: selectedColors.includes('purple') }]">Violet</button>
-            <button @click="toggleColor('yellow')" :class="['chip', { active: selectedColors.includes('yellow') }]">Jaune</button>
-            <button @click="toggleColor('black')" :class="['chip', { active: selectedColors.includes('black') }]">Noir</button>
-          </div>
-
-          <!-- MULTI-SÉLECTION RARETÉS + MENU OPTIONS À DROITE -->
-          <div class="rarity-options-row">
-            <div class="filter-scroll-row">
-              <button @click="resetRarities" :class="['chip', { active: selectedRarities.length === 0 }]">Toutes raretés</button>
-              <button @click="toggleRarity('SEC')" :class="['chip', { active: selectedRarities.includes('SEC') }]">SEC</button>
-              <button @click="toggleRarity('SR')" :class="['chip', { active: selectedRarities.includes('SR') }]">SR</button>
-              <button @click="toggleRarity('R')" :class="['chip', { active: selectedRarities.includes('R') }]">R</button>
-              <button @click="toggleRarity('UC')" :class="['chip', { active: selectedRarities.includes('UC') }]">UC</button>
-              <button @click="toggleRarity('C')" :class="['chip', { active: selectedRarities.includes('C') }]">C</button>
-              <button @click="toggleRarity('L')" :class="['chip', { active: selectedRarities.includes('L') }]">L</button>
-            </div>
-
-            <!-- BOUTON ICÔNE FLATICON À DROITE -->
-            <div class="display-menu-wrapper">
-              <button 
-                class="settings-icon-btn" 
-                :class="{ active: isListDisplay || showAllPages }"
-                @click="showOptionsMenu = !showOptionsMenu" 
-                title="Options d'affichage"
-              >
-                <i class="fi fi-rr-apps"></i>
-              </button>
-
-              <div v-if="showOptionsMenu" class="display-options-dropdown">
-                <button 
-                  class="dropdown-option-btn" 
-                  :class="{ active: isListDisplay }"
-                  @click="isListDisplay = !isListDisplay"
-                >
-                  <span class="check-mark">{{ isListDisplay ? '✓' : '' }}</span>
-                  Afficher en liste
-                </button>
-                <button 
-                  class="dropdown-option-btn" 
-                  :class="{ active: showAllPages }"
-                  @click="showAllPages = !showAllPages"
-                >
-                  <span class="check-mark">{{ showAllPages ? '✓' : '' }}</span>
-                  Afficher toutes les cartes
-                </button>
+          
+          <!-- SECTEUR 1 : POSSESSION -->
+          <div class="filter-card-block">
+            <span class="filter-block-label">Collection</span>
+            <div class="scroll-wrapper">
+              <div class="filter-scroll-row">
+                <button @click="setOwnershipFilter('all')" :class="['chip', { active: selectedOwnership === 'all' && !isRecentMode }]">Toutes</button>
+                <button @click="setOwnershipFilter('owned')" :class="['chip', 'highlight-owned', { active: selectedOwnership === 'owned' && !isRecentMode }]">Possédées</button>
+                <button @click="setOwnershipFilter('unowned')" :class="['chip', { active: selectedOwnership === 'unowned' && !isRecentMode }]">Non possédées</button>
+                <button @click="switchToRecentMode" :class="['chip', 'chip-recent', { active: isRecentMode }]">🕒 Récents (290)</button>
               </div>
             </div>
           </div>
+
+          <!-- SECTEUR 2 : COULEURS -->
+          <div class="filter-card-block">
+            <span class="filter-block-label">Couleurs</span>
+            <div class="scroll-wrapper">
+              <div class="filter-scroll-row">
+                <button @click="resetColors" :class="['chip', { active: selectedColors.length === 0 }]">Toutes couleurs</button>
+                <button @click="toggleColor('red')" :class="['chip', { active: selectedColors.includes('red') }]">Rouge</button>
+                <button @click="toggleColor('blue')" :class="['chip', { active: selectedColors.includes('blue') }]">Bleu</button>
+                <button @click="toggleColor('green')" :class="['chip', { active: selectedColors.includes('green') }]">Vert</button>
+                <button @click="toggleColor('purple')" :class="['chip', { active: selectedColors.includes('purple') }]">Violet</button>
+                <button @click="toggleColor('yellow')" :class="['chip', { active: selectedColors.includes('yellow') }]">Jaune</button>
+                <button @click="toggleColor('black')" :class="['chip', { active: selectedColors.includes('black') }]">Noir</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTEUR 3 : RARETÉS ET AFFICHAGE -->
+          <div class="filter-card-block">
+            <span class="filter-block-label">Raretés & Format</span>
+            <div class="rarity-options-row">
+              <div class="scroll-wrapper flex-1">
+                <div class="filter-scroll-row">
+                  <button @click="resetRarities" :class="['chip', { active: selectedRarities.length === 0 }]">Toutes raretés</button>
+                  <button @click="toggleRarity('SEC')" :class="['chip', { active: selectedRarities.includes('SEC') }]">SEC</button>
+                  <button @click="toggleRarity('SR')" :class="['chip', { active: selectedRarities.includes('SR') }]">SR</button>
+                  <button @click="toggleRarity('R')" :class="['chip', { active: selectedRarities.includes('R') }]">R</button>
+                  <button @click="toggleRarity('UC')" :class="['chip', { active: selectedRarities.includes('UC') }]">UC</button>
+                  <button @click="toggleRarity('C')" :class="['chip', { active: selectedRarities.includes('C') }]">C</button>
+                  <button @click="toggleRarity('L')" :class="['chip', { active: selectedRarities.includes('L') }]">L</button>
+                </div>
+              </div>
+
+              <!-- BOUTON ICÔNE FLATICON À DROITE -->
+              <div class="display-menu-wrapper">
+                <button 
+                  class="settings-icon-btn" 
+                  :class="{ active: isListDisplay || showAllPages }"
+                  @click="showOptionsMenu = !showOptionsMenu" 
+                  title="Options d'affichage"
+                >
+                  <i class="fi fi-rr-apps"></i>
+                </button>
+
+                <div v-if="showOptionsMenu" class="display-options-dropdown">
+                  <button 
+                    class="dropdown-option-btn" 
+                    :class="{ active: isListDisplay }"
+                    @click="isListDisplay = !isListDisplay"
+                  >
+                    <span class="check-mark">{{ isListDisplay ? '✓' : '' }}</span>
+                    Afficher en liste
+                  </button>
+                  <button 
+                    class="dropdown-option-btn" 
+                    :class="{ active: showAllPages }"
+                    @click="showAllPages = !showAllPages"
+                  >
+                    <span class="check-mark">{{ showAllPages ? '✓' : '' }}</span>
+                    Afficher toutes les cartes
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <div v-if="loading" class="loading">Chargement de la collection...</div>
@@ -654,16 +671,51 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* RANGER LES FILTRES SUR UNE SEULE LIGNE DÉROULANTE EN HORIZONTAL SUR MOBILE */
+/* ENCADRÉ DÉDIÉ PAR SECTEUR DE FILTRE */
+.filter-card-block {
+  background: #151c28;
+  border: 1px solid #243041;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-block-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ENVELOPPE DE DÉFILEMENT AVEC FONDU À DROITE POUR MONTRER LA SUITE */
+.scroll-wrapper {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+}
+
+.scroll-wrapper::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 24px;
+  background: linear-gradient(90deg, rgba(21, 28, 40, 0) 0%, #151c28 100%);
+  pointer-events: none;
+}
+
 .filter-scroll-row {
   display: flex;
   align-items: center;
   gap: 8px;
   overflow-x: auto;
   white-space: nowrap;
-  padding-bottom: 4px;
+  padding-bottom: 2px;
   width: 100%;
-  max-width: 100%;
   box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -673,13 +725,14 @@ onMounted(async () => {
   display: none;
 }
 
+.flex-1 { flex: 1; min-width: 0; }
+
 .rarity-options-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
   width: 100%;
-  overflow: hidden;
 }
 
 .display-menu-wrapper {
@@ -767,7 +820,8 @@ onMounted(async () => {
   font-weight: 800;
   font-size: 0.85rem;
   cursor: pointer;
-  height: 38px;
+  height: 40px;
+  flex-shrink: 0;
 }
 
 /* VUE EN LISTE */
@@ -1000,16 +1054,15 @@ onMounted(async () => {
 
 .filter-bar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
+  flex-direction: column;
+  gap: 10px;
   background: #1b2333;
   border: 1px solid #273447;
   border-radius: 16px;
-  padding: 14px;
+  padding: 12px;
 }
 
-.search-box { position: relative; flex: 1; min-width: 200px; }
+.search-box { position: relative; width: 100%; }
 
 .search-input {
   width: 100%;
@@ -1040,7 +1093,7 @@ onMounted(async () => {
 .selects-row {
   display: flex;
   gap: 8px;
-  flex: 1;
+  width: 100%;
 }
 
 .select-field {
@@ -1050,6 +1103,7 @@ onMounted(async () => {
   border-radius: 12px;
   padding: 10px 12px;
   flex: 1;
+  min-width: 0;
   font-size: 0.85rem;
 }
 
@@ -1290,9 +1344,8 @@ onMounted(async () => {
   .page-header h1 { font-size: 1.4rem; }
   .progress-card { min-width: 0; width: 100%; padding: 10px 12px; }
 
-  .filter-bar { padding: 10px; gap: 8px; }
-  .search-box { min-width: 100%; }
-
+  .filter-bar { padding: 10px; }
+  
   .desktop-only-flex { display: none !important; }
   .mobile-only-select { display: block !important; }
   .mobile-filter-toggle-btn { display: flex !important; }
@@ -1302,7 +1355,7 @@ onMounted(async () => {
     display: none !important;
   }
 
-  .selects-row { width: 100%; gap: 6px; }
+  .selects-row { width: 100%; gap: 8px; }
 
   .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .side-panel { display: none; }

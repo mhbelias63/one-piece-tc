@@ -4,12 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     
-    <!-- 1. ACTIVER LE MODE APPLI PLEIN ÉCRAN SUR IOS (Masque le bandeau et les boutons Safari) -->
+    <!-- 1. ACTIVER LE MODE APPLI PLEIN ÉCRAN SUR IOS -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
-    <!-- 2. NOM ET ICÔNES DES HOMESCREENS -->
+    <!-- 2. APPLIQUER LE MANIFEST (Essentiel pour fixer le start_url et scope) -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- 3. NOM ET ICÔNES DES HOMESCREENS -->
     <meta name="apple-mobile-web-app-title" content="One Piece TC">
     <link rel="apple-touch-icon" href="/favicon.png">
     <link rel="icon" type="image/png" href="/favicon.png" />

@@ -162,7 +162,8 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 import { supabase } from '../supabase'
 import { fetchUserDecks, saveUserDeck, fetchCardsCached } from '../services/playerService'
 
@@ -187,21 +188,8 @@ const isSelectionMode = ref(false)
 const selectedDeckIds = ref([])
 const showBatchDeleteModal = ref(false)
 
-// Debounce timer pour limiter les appels réseau lors de la modification des decks
-let saveTimer = null
-
-function triggerDebouncedSave() {
-    persistLocalDecks() // Mettre à jour le localStorage immédiatement
-    
-    if (saveTimer) clearTimeout(saveTimer)
-    
-    // Attendre 1,5 seconde d'inactivité avant d'envoyer la requête vers Supabase
-    saveTimer = setTimeout(async () => {
-        if (activeDeck.value) {
-            await saveUserDeck(activeDeck.value)
-        }
-    }, 1500)
-}
+// Stocke la "photo" du deck au moment de l'ouverture
+const initialDeckSnapshot = ref(null)
 
 function toggleSelectionMode() {
     isSelectionMode.value = !isSelectionMode.value
@@ -317,7 +305,7 @@ function selectCard(card) {
         targetDeck.leader = card
         targetDeck.cards = targetDeck.cards.filter(item => isColorCompatible(item.card || item, card))
         showLeaderSelection.value = false
-        triggerDebouncedSave()
+        persistLocalDecks()
         return
     }
 
@@ -339,7 +327,7 @@ function selectCard(card) {
         targetDeck.cards.push({ card, count: 1 })
     }
 
-    triggerDebouncedSave()
+    persistLocalDecks()
 }
 
 function removeLastVersionOfGroup(group) {
@@ -366,7 +354,24 @@ function removeCard(card) {
         targetDeck.cards.splice(index, 1)
     }
 
-    triggerDebouncedSave()
+    persistLocalDecks()
+}
+
+// Compare l'état actuel du deck avec sa "photo" d'ouverture
+async function saveIfDeckHasChanged() {
+    if (!activeDeck.value || !initialDeckSnapshot.value) return
+
+    const currentSnapshot = JSON.stringify({
+        name: activeDeck.value.name,
+        leader: activeDeck.value.leader,
+        cards: activeDeck.value.cards
+    })
+
+    // Sauvegarde Supabase uniquement s'il y a eu une modification
+    if (currentSnapshot !== initialDeckSnapshot.value) {
+        await saveUserDeck(activeDeck.value)
+        initialDeckSnapshot.value = currentSnapshot
+    }
 }
 
 function getCardColors(card) {
@@ -460,20 +465,22 @@ async function deleteDeckConfirmed() {
 function openEditor(deckId) {
     editingDeckId.value = deckId
     showLeaderSelection.value = !activeDeck.value?.leader
+    
+    // Prise de la "photo" de départ pour la détection de changements
+    if (activeDeck.value) {
+        initialDeckSnapshot.value = JSON.stringify({
+            name: activeDeck.value.name,
+            leader: activeDeck.value.leader,
+            cards: activeDeck.value.cards
+        })
+    }
 }
 
 async function exitEditor() {
-    // Si un timer de sauvegarde automatique était planifié, on l'annule et on force l'envoi immédiat
-    if (saveTimer) {
-        clearTimeout(saveTimer)
-        saveTimer = null
-    }
-    
-    if (activeDeck.value) {
-        await saveUserDeck(activeDeck.value)
-    }
+    await saveIfDeckHasChanged()
     
     editingDeckId.value = null
+    initialDeckSnapshot.value = null
     showLeaderSelection.value = false
     searchCatalog.value = ''
     persistLocalDecks()
@@ -521,14 +528,16 @@ async function fetchCards() {
     loading.value = false
 }
 
+// Sécurité : Sauvegarde si l'utilisateur change de page via la barre de navigation
+onBeforeRouteLeave(async () => {
+    if (editingDeckId.value) {
+        await saveIfDeckHasChanged()
+    }
+})
+
 onMounted(() => {
     loadDecks()
     fetchCards()
-})
-
-onUnmounted(() => {
-    // Nettoyage du timer si le composant est détruit
-    if (saveTimer) clearTimeout(saveTimer)
 })
 </script>
 

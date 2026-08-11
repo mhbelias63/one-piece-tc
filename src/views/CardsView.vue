@@ -4,10 +4,10 @@
       <!-- HEADER DE LA PAGE -->
       <div class="page-header">
         <div>
-          <h1>MA COLLECTION</h1>
+          <h1>{{ isRecentMode ? 'CARTES RÉCENTES (290 MAX)' : 'MA COLLECTION' }}</h1>
           <p>
-            {{ viewMode === 'sets' ? 'Progression par extension' : (selectedSet === 'ALL' ? 'Toutes les cartes' : `Cartes du set ${selectedSet}`) }}
-            <span>• {{ viewMode === 'sets' ? `${allSetsStats.length} extensions` : `${filteredCards.length} cartes filtrées` }}</span>
+            {{ isRecentMode ? 'Tes derniers tirages de cartes' : (viewMode === 'sets' ? 'Progression par extension' : (selectedSet === 'ALL' ? 'Toutes les cartes' : `Cartes du set ${selectedSet}`)) }}
+            <span>• {{ viewMode === 'sets' ? `${allSetsStats.length} extensions` : `${filteredCards.length} cartes` }}</span>
           </p>
         </div>
 
@@ -15,7 +15,7 @@
           <div class="progress-copy">
             <div class="progress-title-row">
               <strong>Progression globale</strong>
-              <button class="toggle-view-btn" @click="viewMode = viewMode === 'grid' ? 'sets' : 'grid'">
+              <button class="toggle-view-btn" @click="toggleViewMode">
                 {{ viewMode === 'grid' ? 'Voir par set' : 'Voir toutes les cartes' }}
               </button>
             </div>
@@ -76,6 +76,7 @@
 
           <select v-model="sortMode" class="select-field">
             <option value="id">Trier par numéro</option>
+            <option value="recent">Plus récentes d'abord</option>
             <option value="name">Trier par nom</option>
             <option value="rarity">Trier par rareté</option>
             <option value="cost">Trier par coût</option>
@@ -93,9 +94,10 @@
         <div class="secondary-filters">
           <!-- FILTRE DE POSSESSION -->
           <div class="filter-pill-group">
-            <button @click="selectedOwnership = 'all'" :class="['chip', { active: selectedOwnership === 'all' }]">Toutes</button>
-            <button @click="selectedOwnership = 'owned'" :class="['chip', 'highlight-owned', { active: selectedOwnership === 'owned' }]">Possédées</button>
-            <button @click="selectedOwnership = 'unowned'" :class="['chip', { active: selectedOwnership === 'unowned' }]">Non possédées</button>
+            <button @click="setOwnershipFilter('all')" :class="['chip', { active: selectedOwnership === 'all' && !isRecentMode }]">Toutes</button>
+            <button @click="setOwnershipFilter('owned')" :class="['chip', 'highlight-owned', { active: selectedOwnership === 'owned' && !isRecentMode }]">Possédées</button>
+            <button @click="setOwnershipFilter('unowned')" :class="['chip', { active: selectedOwnership === 'unowned' && !isRecentMode }]">Non possédées</button>
+            <button @click="switchToRecentMode" :class="['chip', 'chip-recent', { active: isRecentMode }]">🕒 Récents (290)</button>
           </div>
 
           <!-- MULTI-SÉLECTION COULEURS -->
@@ -109,15 +111,48 @@
             <button @click="toggleColor('black')" :class="['chip', { active: selectedColors.includes('black') }]">Noir</button>
           </div>
 
-          <!-- MULTI-SÉLECTION RARETÉS -->
-          <div class="filter-pill-group">
-            <button @click="resetRarities" :class="['chip', { active: selectedRarities.length === 0 }]">Toutes raretés</button>
-            <button @click="toggleRarity('SEC')" :class="['chip', { active: selectedRarities.includes('SEC') }]">SEC</button>
-            <button @click="toggleRarity('SR')" :class="['chip', { active: selectedRarities.includes('SR') }]">SR</button>
-            <button @click="toggleRarity('R')" :class="['chip', { active: selectedRarities.includes('R') }]">R</button>
-            <button @click="toggleRarity('UC')" :class="['chip', { active: selectedRarities.includes('UC') }]">UC</button>
-            <button @click="toggleRarity('C')" :class="['chip', { active: selectedRarities.includes('C') }]">C</button>
-            <button @click="toggleRarity('L')" :class="['chip', { active: selectedRarities.includes('L') }]">L</button>
+          <!-- MULTI-SÉLECTION RARETÉS + MENU OPTIONS À DROITE -->
+          <div class="rarity-options-row">
+            <div class="filter-pill-group">
+              <button @click="resetRarities" :class="['chip', { active: selectedRarities.length === 0 }]">Toutes raretés</button>
+              <button @click="toggleRarity('SEC')" :class="['chip', { active: selectedRarities.includes('SEC') }]">SEC</button>
+              <button @click="toggleRarity('SR')" :class="['chip', { active: selectedRarities.includes('SR') }]">SR</button>
+              <button @click="toggleRarity('R')" :class="['chip', { active: selectedRarities.includes('R') }]">R</button>
+              <button @click="toggleRarity('UC')" :class="['chip', { active: selectedRarities.includes('UC') }]">UC</button>
+              <button @click="toggleRarity('C')" :class="['chip', { active: selectedRarities.includes('C') }]">C</button>
+              <button @click="toggleRarity('L')" :class="['chip', { active: selectedRarities.includes('L') }]">L</button>
+            </div>
+
+            <!-- BOUTON ICÔNE FLATICON À DROITE -->
+            <div class="display-menu-wrapper">
+              <button 
+                class="settings-icon-btn" 
+                :class="{ active: isListDisplay || showAllPages }"
+                @click="showOptionsMenu = !showOptionsMenu" 
+                title="Options d'affichage"
+              >
+                <i class="fi fi-rr-apps"></i>
+              </button>
+
+              <div v-if="showOptionsMenu" class="display-options-dropdown">
+                <button 
+                  class="dropdown-option-btn" 
+                  :class="{ active: isListDisplay }"
+                  @click="isListDisplay = !isListDisplay"
+                >
+                  <span class="check-mark">{{ isListDisplay ? '✓' : '' }}</span>
+                  Afficher en liste
+                </button>
+                <button 
+                  class="dropdown-option-btn" 
+                  :class="{ active: showAllPages }"
+                  @click="showAllPages = !showAllPages"
+                >
+                  <span class="check-mark">{{ showAllPages ? '✓' : '' }}</span>
+                  Afficher toutes les cartes
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -127,11 +162,45 @@
           Aucune carte ne correspond à tes filtres.
         </div>
 
-        <!-- GRILLE DES CARTES -->
+        <!-- AFFICHAGE EN VUE LISTE -->
+        <div v-else-if="isListDisplay" class="card-list-view">
+          <article
+            v-for="card in displayedCards"
+            :key="card.drawUniqueKey || card.id"
+            class="card-list-item"
+            :class="{ 'unowned-card': !ownedCardIds.has(card.id) }"
+            @click="openCardModal(card)"
+          >
+            <div class="list-thumb">
+              <img 
+                v-if="card.image_url" 
+                :src="card.image_url" 
+                :alt="card.name"
+                @error="handleImageError"
+              />
+              <div class="placeholder-art" :style="{ display: card.image_url ? 'none' : 'grid' }">?</div>
+            </div>
+
+            <div class="list-card-info">
+              <span class="list-card-name">{{ card.name }}</span>
+              <span class="list-card-set">{{ card.id }} • Set : {{ card.set_id || 'OP' }}</span>
+            </div>
+
+            <div class="list-card-meta">
+              <span class="rarity-tag" :style="{ color: getRarityColor(card.rarity) }">
+                {{ card.rarity || 'N/A' }}
+              </span>
+              <span v-if="!ownedCardIds.has(card.id)" class="unowned-text">Non possédée</span>
+              <span v-else class="owned-count-pill">x{{ getOwnedCount(card) }}</span>
+            </div>
+          </article>
+        </div>
+
+        <!-- AFFICHAGE EN GRILLE NORMALE -->
         <div v-else class="card-grid">
           <article
             v-for="card in displayedCards"
-            :key="card.id"
+            :key="card.drawUniqueKey || card.id"
             class="card-item"
             :class="{ 'unowned-card': !ownedCardIds.has(card.id) }"
             @click="openCardModal(card)"
@@ -161,8 +230,9 @@
           </article>
         </div>
 
-        <div v-if="filteredCards.length > displayedCards.length" class="load-more-row">
-          <button class="load-more-btn" @click="visibleCount += 12">Charger plus de cartes</button>
+        <!-- BOUTON CHARGER PLUS -->
+        <div v-if="!showAllPages && filteredCards.length > displayedCards.length" class="load-more-row">
+          <button class="load-more-btn" @click="visibleCount += 24">Charger plus de cartes</button>
           <span>Affichage de {{ displayedCards.length }} sur {{ filteredCards.length }} cartes</span>
         </div>
       </template>
@@ -228,6 +298,7 @@
     </aside>
 
     <CardModal 
+      v-if="selectedCard"
       :card="selectedCard" 
       :ownedCount="getOwnedCount(selectedCard)"
       @close="selectedCard = null" 
@@ -245,24 +316,28 @@ const route = useRoute()
 const router = useRouter()
 
 const viewMode = ref('grid')
-const cards = ref([])
+const allCatalogCards = ref([])
+const recentCardsList = ref([])
 const loading = ref(true)
 const loadingSets = ref(false)
 const selectedSet = ref('ALL')
 const selectedCard = ref(null)
-const visibleCount = ref(12)
+const visibleCount = ref(24)
+const isRecentMode = ref(false)
+
+const showOptionsMenu = ref(false)
+const isListDisplay = ref(false)
+const showAllPages = ref(false)
 
 const ownedCardIds = ref(new Set())
 const cardQuantities = ref(new Map())
-const totalDbCardCount = ref(0)
 const allSetsStats = ref([])
 
-// NOUVEAUX ÉTATS POUR FILTRES MULTIPLES
-const selectedOwnership = ref('all') // 'all', 'owned', 'unowned'
-const selectedType = ref('all')       // 'all', 'standard', 'parallel'
+const selectedOwnership = ref('all')
+const selectedType = ref('all')
 const searchQuery = ref('')
-const selectedColors = ref([])       // Tableau pour multi-sélection (ex: ['red', 'purple'])
-const selectedRarities = ref([])     // Tableau pour multi-sélection (ex: ['SR', 'SEC'])
+const selectedColors = ref([])
+const selectedRarities = ref([])
 const sortMode = ref('id')
 
 const friends = [
@@ -279,7 +354,6 @@ const missions = [
   { label: 'Collectionner 3 cartes', count: '2/3', progress: 66 }
 ]
 
-// FONCTIONS DE GESTION MULTI-SÉLECTION
 function toggleColor(color) {
   const index = selectedColors.value.indexOf(color)
   if (index > -1) {
@@ -306,8 +380,35 @@ function resetRarities() {
   selectedRarities.value = []
 }
 
-// CHARGEMENT DE LA BDD
-async function loadUserCollectionFromSupabase() {
+function setOwnershipFilter(type) {
+  isRecentMode.value = false
+  selectedOwnership.value = type
+  if (sortMode.value === 'recent') sortMode.value = 'id'
+}
+
+function switchToRecentMode() {
+  isRecentMode.value = true
+  selectedOwnership.value = 'owned'
+  sortMode.value = 'recent'
+  fetch290RecentCards()
+}
+
+function toggleViewMode() {
+  viewMode.value = viewMode.value === 'grid' ? 'sets' : 'grid'
+}
+
+async function loadFullCatalog() {
+  loading.value = true
+  const { data, error } = await supabase.from('cards').select('*')
+  if (!error && data) {
+    allCatalogCards.value = data
+  } else {
+    allCatalogCards.value = []
+  }
+  loading.value = false
+}
+
+async function loadUserCollection() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     ownedCardIds.value = new Set()
@@ -320,10 +421,7 @@ async function loadUserCollectionFromSupabase() {
     .select('card_id')
     .eq('user_id', user.id)
 
-  if (error) {
-    console.error('Erreur chargement user_cards :', error)
-    return
-  }
+  if (error || !data) return
 
   const uniqueIds = new Set()
   const qMap = new Map()
@@ -337,51 +435,58 @@ async function loadUserCollectionFromSupabase() {
   cardQuantities.value = qMap
 }
 
+async function fetch290RecentCards() {
+  loading.value = true
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    loading.value = false
+    return
+  }
+
+  const { data: userCardsData, error: ucError } = await supabase
+    .from('user_cards')
+    .select('id, card_id, created_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(290)
+
+  if (ucError || !userCardsData || userCardsData.length === 0) {
+    recentCardsList.value = []
+    loading.value = false
+    return
+  }
+
+  const cardsMap = new Map(allCatalogCards.value.map(c => [c.id, c]))
+
+  recentCardsList.value = userCardsData
+    .map(uc => {
+      const cardDetails = cardsMap.get(uc.card_id)
+      if (!cardDetails) return null
+      return {
+        ...cardDetails,
+        drawUniqueKey: `${uc.id}-${uc.created_at}`,
+        created_at: uc.created_at
+      }
+    })
+    .filter(Boolean)
+
+  loading.value = false
+}
+
 function getOwnedCount(card) {
   if (!card || !card.id) return 0
   return cardQuantities.value.get(card.id) || 0
 }
 
-async function fetchCards() {
-  loading.value = true
-  visibleCount.value = 12
-
-  const { count, error: countError } = await supabase
-    .from('cards')
-    .select('*', { count: 'exact', head: true })
-
-  if (!countError && count !== null) {
-    totalDbCardCount.value = count
-  }
-
-  let query = supabase.from('cards').select('*')
-  if (selectedSet.value && selectedSet.value !== 'ALL') {
-    query = query.or(`set_id.eq.${selectedSet.value},id.ilike.${selectedSet.value}-%`)
-  }
-
-  const { data, error } = await query
-  if (error) {
-    console.error('Erreur Supabase :', error)
-    cards.value = []
-  } else {
-    cards.value = data || []
-  }
-
-  loading.value = false
-}
-
 async function fetchAllSetsStats() {
   loadingSets.value = true
-  const { data: allCards, error } = await supabase.from('cards').select('id, set_id')
   
-  if (error || !allCards) {
-    allSetsStats.value = []
-    loadingSets.value = false
-    return
+  if (allCatalogCards.value.length === 0) {
+    await loadFullCatalog()
   }
 
   const groups = {}
-  allCards.forEach(card => {
+  allCatalogCards.value.forEach(card => {
     let sId = card.set_id || 'AUTRE'
     if (!groups[sId]) groups[sId] = []
     groups[sId].push(card.id)
@@ -402,38 +507,39 @@ async function fetchAllSetsStats() {
 
 function filterBySet(setId) {
   viewMode.value = 'grid'
+  selectedSet.value = setId
+  isRecentMode.value = false
   router.push({ path: '/cards', query: { set: setId } })
 }
 
-// LOGIQUE DE FILTRAGE CROISÉ
 const filteredCards = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
+  let baseCards = isRecentMode.value ? recentCardsList.value : allCatalogCards.value
 
-  return cards.value
+  if (!isRecentMode.value && selectedSet.value && selectedSet.value !== 'ALL') {
+    baseCards = baseCards.filter(c => c.set_id === selectedSet.value || c.id.startsWith(`${selectedSet.value}-`))
+  }
+
+  return baseCards
     .filter(card => {
-      // 1. FILTRE POSSÉDÉE
       const isOwned = ownedCardIds.value.has(card.id)
       if (selectedOwnership.value === 'owned' && !isOwned) return false
       if (selectedOwnership.value === 'unowned' && isOwned) return false
 
-      // 2. FILTRE STYLE (Classique / Alternative)
       const isParallel = card.id?.includes('_ALT_') || card.name?.toLowerCase().includes('(parallel)')
       if (selectedType.value === 'standard' && isParallel) return false
       if (selectedType.value === 'parallel' && !isParallel) return false
 
-      // 3. MULTI-FILTRE RARETÉ
       if (selectedRarities.value.length > 0) {
         if (!selectedRarities.value.includes(card.rarity)) return false
       }
 
-      // 4. MULTI-FILTRE COULEUR
       if (selectedColors.value.length > 0) {
         const cardColor = String(card.color || '').toLowerCase()
         const hasMatchingColor = selectedColors.value.some(c => cardColor.includes(c))
         if (!hasMatchingColor) return false
       }
 
-      // 5. RECHERCHE TEXTUELLE
       if (query) {
         const name = (card.name || '').toLowerCase()
         const id = (card.id || '').toLowerCase()
@@ -445,6 +551,8 @@ const filteredCards = computed(() => {
     })
     .sort((a, b) => {
       switch (sortMode.value) {
+        case 'recent':
+          return new Date(b.created_at || 0) - new Date(a.created_at || 0)
         case 'name':
           return (a.name || '').localeCompare(b.name || '')
         case 'rarity':
@@ -457,11 +565,17 @@ const filteredCards = computed(() => {
     })
 })
 
-const displayedCards = computed(() => filteredCards.value.slice(0, visibleCount.value))
+const displayedCards = computed(() => {
+  if (showAllPages.value) {
+    return filteredCards.value
+  }
+  return filteredCards.value.slice(0, visibleCount.value)
+})
+
 const totalOwnedCount = computed(() => ownedCardIds.value.size)
-const maxTargetCount = computed(() => totalDbCardCount.value || cards.value.length || 1)
-const progressPercent = computed(() => Math.min(100, Math.round((totalOwnedCount.value / maxTargetCount.value) * 100)))
-const collectionLabel = computed(() => `Ma collection : ${totalOwnedCount.value} / ${maxTargetCount.value} cartes`)
+const totalDbCardCount = computed(() => allCatalogCards.value.length || 1)
+const progressPercent = computed(() => Math.min(100, Math.round((totalOwnedCount.value / totalDbCardCount.value) * 100)))
+const collectionLabel = computed(() => `Ma collection : ${totalOwnedCount.value} / ${totalDbCardCount.value} cartes`)
 
 function getRarityColor(rarityCode) {
   if (!rarityCode) return '#9ca3af'
@@ -497,20 +611,202 @@ watch(viewMode, (newMode) => {
 })
 
 watch(
-  () => route.query.set,
-  newSet => {
-    selectedSet.value = newSet || 'ALL'
-    fetchCards()
+  () => route.query,
+  async query => {
+    if (allCatalogCards.value.length === 0) {
+      await loadFullCatalog()
+    }
+    await loadUserCollection()
+
+    if (query.filter === 'recent') {
+      isRecentMode.value = true
+      selectedOwnership.value = 'owned'
+      sortMode.value = 'recent'
+      await fetch290RecentCards()
+    } else {
+      isRecentMode.value = false
+      selectedSet.value = query.set || 'ALL'
+    }
   },
   { immediate: true }
 )
 
-onMounted(() => {
-  loadUserCollectionFromSupabase()
+onMounted(async () => {
+  if (allCatalogCards.value.length === 0) {
+    await loadFullCatalog()
+  }
+  await loadUserCollection()
 })
 </script>
 
 <style scoped>
+/* ALIGNEMENT ET STYLE DE L'ICÔNE FLATICON */
+.rarity-options-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.display-menu-wrapper {
+  position: relative;
+}
+
+.settings-icon-btn {
+  background: #0d111a;
+  border: 1px solid #273447;
+  border-radius: 999px;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #cbd5e1;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-icon-btn:hover, .settings-icon-btn.active {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #111827;
+}
+
+.display-options-dropdown {
+  position: absolute;
+  right: 0;
+  top: 46px;
+  background: #1b2333;
+  border: 1px solid #273447;
+  border-radius: 12px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 100;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  min-width: 210px;
+}
+
+.dropdown-option-btn {
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.2s ease;
+}
+
+.dropdown-option-btn:hover {
+  background: #273447;
+  color: #ffffff;
+}
+
+.dropdown-option-btn.active {
+  color: #f59e0b;
+}
+
+.check-mark {
+  width: 14px;
+  font-weight: 900;
+}
+
+/* VUE EN LISTE */
+.card-list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card-list-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #1b2333;
+  border: 1px solid #243041;
+  border-radius: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.card-list-item:hover {
+  transform: translateX(4px);
+  border-color: #f59e0b;
+}
+
+.list-thumb {
+  width: 38px;
+  height: 52px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #0d111a;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.list-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.list-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.list-card-name {
+  color: #f8fafc;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.list-card-set {
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+.list-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.owned-count-pill {
+  background: #f59e0b;
+  color: #111827;
+  font-size: 0.75rem;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.unowned-text {
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.chip-recent.active {
+  background: #a855f7 !important;
+  border-color: #a855f7 !important;
+  color: #ffffff !important;
+}
+
 .collection-shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 310px;
@@ -770,6 +1066,7 @@ onMounted(() => {
 }
 
 .unowned-card .card-art img { filter: grayscale(100%) opacity(0.35); }
+.unowned-card.card-list-item { opacity: 0.55; }
 
 .unowned-badge {
   position: absolute;

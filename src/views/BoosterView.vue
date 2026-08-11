@@ -93,11 +93,17 @@
 
                                     <!-- PARTICULES RESTRUCTURÉES POUR LES EFFETS -->
                                     <template v-if="index === 0 && !showBack">
-                                        <!-- SEC + ALTERNATIVE (ULTRA) -->
-                                        <div v-if="getRarity(card) === 'SEC' && isAlternative(card)"
+                                        <!-- MANGA OU SEC + ALTERNATIVE (ULTRA) -->
+                                        <div v-if="card.is_manga || (getRarity(card) === 'SEC' && isAlternative(card))"
                                             class="particles-container iridescent-ultra">
                                             <div class="iridescent-aura ultra"></div>
-                                            <span v-for="p in 32" :key="`sec-alt-${p}`" class="p-dot"></span>
+                                            <span v-for="p in 32" :key="`manga-alt-${p}`" class="p-dot"></span>
+                                        </div>
+
+                                        <!-- SP CARD (GOLD & PURPLE) -->
+                                        <div v-else-if="card.is_sp" class="particles-container gold">
+                                            <div class="gold-aura"></div>
+                                            <span v-for="p in 24" :key="`sp-${p}`" class="p-dot"></span>
                                         </div>
 
                                         <!-- SEC SIMPLE (GOLD) -->
@@ -145,9 +151,13 @@
                     <div v-for="(card, index) in sortedDrawnCards" :key="card.drawId || index" class="summary-card"
                         @click="hoveredCard = card">
                         <img :src="card.image_url" :alt="card.name" @error="onImageError($event)" />
-                        <div v-if="getRarity(card) === 'SR'" class="badge-tag sr">SR</div>
-                        <div v-if="getRarity(card) === 'SEC'" class="badge-tag sec">SEC</div>
-                        <div v-if="isAlternative(card)" class="badge-tag alt">ALT</div>
+                        
+                        <!-- AFICHAGE DES BADGES ÉPURÉS -->
+                        <div v-if="card.is_manga" class="badge-tag manga">MR</div>
+                        <div v-else-if="card.is_sp" class="badge-tag sp">SP</div>
+                        <div v-else-if="getRarity(card) === 'SEC'" class="badge-tag sec">SEC</div>
+                        <div v-else-if="getRarity(card) === 'SR'" class="badge-tag sr">SR</div>
+                        <div v-else-if="isAlternative(card)" class="badge-tag alt">ALT</div>
                     </div>
                 </div>
 
@@ -300,17 +310,26 @@ function selectSetFromModal(code) {
 
 const visibleStack = computed(() => drawnCards.value.slice(currentIndex.value))
 
+// --- TRI STRICT ET HIÉRARCHIQUE DES CARTES OBTENUES ---
 const sortedDrawnCards = computed(() => {
-    const rarityRank = {
-        'SEC_ALT': 1, 'ALT': 2, 'SEC': 3, 'SR': 4, 'R': 5, 'UC': 6, 'C': 7, 'L': 8
-    }
     return [...drawnCards.value].sort((a, b) => {
         const getRank = (card) => {
             const alt = isAlternative(card)
             const rarity = getRarity(card)
-            if (rarity === 'SEC' && alt) return rarityRank['SEC_ALT']
-            if (alt) return rarityRank['ALT']
-            return rarityRank[rarity] || 99
+
+            if (card.is_manga) return 1
+            if (card.is_sp) return 2
+            if (rarity === 'SEC' && alt) return 3
+            if (rarity === 'SEC') return 4
+            if (rarity === 'SR' && alt) return 5
+            if (rarity === 'L' && alt) return 6  // Leader Alternative
+            if (alt) return 7                    // Alternatives R, UC, C
+            if (rarity === 'SR') return 8
+            if (rarity === 'R') return 9
+            if (rarity === 'UC') return 10
+            if (rarity === 'C') return 11
+            if (rarity === 'L') return 12        // Leader basique
+            return 13
         }
         return getRank(a) - getRank(b)
     })
@@ -357,23 +376,102 @@ async function openPack() {
         return
     }
 
-    const totalToDraw = selectedView.value === 'booster' ? 12 : 288
+    // --- 1. CLASSIFICATION DES POOLS DE CARTES ---
+    const mangaPool = available.filter(c => c.is_manga === true)
+    const spPool = available.filter(c => c.is_sp === true && !c.is_manga)
+    
+    const leaderPoolStandard = available.filter(c => getRarity(c) === 'L' && !isAlternative(c) && !c.is_manga && !c.is_sp)
+    const leaderPoolAlt = available.filter(c => getRarity(c) === 'L' && isAlternative(c) && !c.is_manga && !c.is_sp)
+
+    const altPool = available.filter(c => isAlternative(c) && !c.is_manga && !c.is_sp && getRarity(c) !== 'L')
+    const standardPool = available.filter(c => !isAlternative(c) && !c.is_manga && !c.is_sp && getRarity(c) !== 'L')
+
+    const getRandomCard = (cardsList) => {
+        if (!cardsList || cardsList.length === 0) return available[Math.floor(Math.random() * available.length)]
+        return cardsList[Math.floor(Math.random() * cardsList.length)]
+    }
+
+    // --- 2. LOGIQUE DU SLOT HIT SPÉCIAL (CARTE 12) ---
+    const drawSpecialSlot = () => {
+        const rand = Math.random() * 100
+
+        // 1. MANGA (0.1%)
+        if (rand < 0.1 && mangaPool.length > 0) return getRandomCard(mangaPool)
+        
+        // 2. SP (1.5%)
+        if (rand < 1.6 && spPool.length > 0) return getRandomCard(spPool)
+
+        // 3. SEC Alternate (3.5%)
+        if (rand < 5.1) {
+            const secAlts = altPool.filter(c => getRarity(c) === 'SEC')
+            if (secAlts.length > 0) return getRandomCard(secAlts)
+        }
+
+        // 4. SR Alternate (15%)
+        if (rand < 20.1) {
+            const srAlts = altPool.filter(c => getRarity(c) === 'SR')
+            if (srAlts.length > 0) return getRandomCard(srAlts)
+        }
+
+        // 5. Alternatives Rares ou Leaders Alt
+        const allAlts = [...altPool, ...leaderPoolAlt]
+        return getRandomCard(allAlts.length > 0 ? allAlts : standardPool)
+    }
+
+    // --- 3. TIRAGE DES BOOSTERS ---
     const pack = []
     const dbInserts = []
+    const numPacks = selectedView.value === 'booster' ? 1 : 24
 
-    for (let i = 0; i < totalToDraw; i++) {
-        const randomIndex = Math.floor(Math.random() * available.length)
-        const drawnCard = available[randomIndex]
+    for (let p = 0; p < numPacks; p++) {
+        // Détection God Pack (0.1% = 1 chance sur 1000)
+        const isGodPack = Math.random() * 100 < 0.1
 
-        pack.push({
-            ...drawnCard,
-            drawId: `card-${i}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
-        })
+        // 50% de chance d'avoir UN Leader max dans le booster
+        const hasLeader = Math.random() < 0.5
+        const leaderSlotIndex = 5 
 
-        dbInserts.push({
-            user_id: user.id,
-            card_id: drawnCard.id
-        })
+        for (let i = 0; i < 12; i++) {
+            let drawnCard;
+
+            if (isGodPack) {
+                // ==================== GOD PACK ====================
+                if (i === 11) {
+                    drawnCard = mangaPool.length > 0 ? getRandomCard(mangaPool) : getRandomCard(altPool)
+                } else if (i === 10) {
+                    drawnCard = spPool.length > 0 ? getRandomCard(spPool) : getRandomCard(altPool)
+                } else if (i === leaderSlotIndex && hasLeader && leaderPoolAlt.length > 0) {
+                    drawnCard = getRandomCard(leaderPoolAlt)
+                } else {
+                    drawnCard = getRandomCard(altPool.length > 0 ? altPool : available)
+                }
+            } else {
+                // ================= BOOSTER NORMAL =================
+                if (i === 11) {
+                    drawnCard = drawSpecialSlot()
+                } else if (i === 10) {
+                    const rarePool = standardPool.filter(c => ['R', 'SR', 'SEC'].includes(getRarity(c)))
+                    drawnCard = getRandomCard(rarePool.length > 0 ? rarePool : standardPool)
+                } else if (i === leaderSlotIndex && hasLeader && leaderPoolStandard.length > 0) {
+                    drawnCard = getRandomCard(leaderPoolStandard)
+                } else {
+                    const commonPool = standardPool.filter(c => ['C', 'UC'].includes(getRarity(c)))
+                    drawnCard = getRandomCard(commonPool.length > 0 ? commonPool : standardPool)
+                }
+            }
+
+            const drawIndex = pack.length
+            pack.push({
+                ...drawnCard,
+                isGodPack: isGodPack,
+                drawId: `card-${drawIndex}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
+            })
+
+            dbInserts.push({
+                user_id: user.id,
+                card_id: drawnCard.id
+            })
+        }
     }
 
     const { error: insertError } = await supabase.from('user_cards').insert(dbInserts)
@@ -432,7 +530,7 @@ function frontClass(card) {
     return {
         sr: rarity === 'SR',
         sec: rarity === 'SEC',
-        alt: isAlternative(card)
+        alt: isAlternative(card) || card.is_sp || card.is_manga
     }
 }
 
@@ -462,7 +560,6 @@ function onImageError(event) {
 .booster-shell {
     position: relative;
     width: 100%;
-    /* FORCER HAUTEUR ULTRA COMPACTE SANS SCROLL PC */
     height: calc(100vh - 100px);
     max-height: calc(100vh - 100px);
     border-radius: 20px;
@@ -615,7 +712,6 @@ function onImageError(event) {
     pointer-events: none;
 }
 
-/* TAILLE PACK OPTIMISÉE SANS TROP GRANDIR */
 .pack-card {
     position: relative;
     width: 320px;
@@ -869,7 +965,7 @@ function onImageError(event) {
     overflow: hidden;
 }
 
-/* PARTICULES D'EFFETS VISUELS (SR, SEC, ALT, ULTRA) */
+/* PARTICULES D'EFFETS VISUELS */
 .particles-container {
     position: absolute;
     inset: -50px;
@@ -987,20 +1083,24 @@ function onImageError(event) {
     object-fit: cover;
 }
 
+/* DESIGN DES BADGES DE RARETÉ */
 .badge-tag {
     position: absolute;
     top: 4px;
     right: 4px;
-    padding: 2px 5px;
+    padding: 2px 6px;
     border-radius: 4px;
-    font-size: 0.6rem;
+    font-size: 0.65rem;
     font-weight: 900;
-    color: #000;
+    letter-spacing: 0.05em;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
-.badge-tag.sr { background: #38bdf8; }
-.badge-tag.sec { background: #facc15; }
-.badge-tag.alt { background: #e879f9; }
+.badge-tag.manga { background: #ffffff; color: #000000; }
+.badge-tag.sp { background: #a855f7; color: #ffffff; }
+.badge-tag.sec { background: #facc15; color: #000000; }
+.badge-tag.sr { background: #38bdf8; color: #000000; }
+.badge-tag.alt { background: #e879f9; color: #000000; }
 
 .reveal-actions {
     display: flex;

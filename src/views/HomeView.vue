@@ -54,11 +54,9 @@
           </div>
         </div>
 
-        <!-- Flèches de navigation -->
         <button class="nav-arrow prev-arrow" @click="prevSlide" aria-label="Précédent">‹</button>
         <button class="nav-arrow next-arrow" @click="nextSlide" aria-label="Suivant">›</button>
 
-        <!-- Puces indicatrices (Petits ronds) -->
         <div class="dots-indicators">
           <span 
             v-for="(_, index) in slides" 
@@ -74,19 +72,17 @@
       <section class="section-block">
         <div class="section-header">
           <h3>Cartes Récentes</h3>
-          <router-link to="/cards" class="section-link">VOIR TOUT</router-link>
+          <router-link to="/cards?filter=recent" class="section-link">VOIR TOUT</router-link>
         </div>
 
         <div class="cards-grid">
           <template v-if="recentCards.length">
-            <article v-for="card in recentCards" :key="card.id" class="card-item">
-              <div class="card-top">
-                <div class="cost-pill" :class="getCostClass(card.color)">
-                  {{ card.cost !== null && card.cost !== undefined ? card.cost : '-' }}
-                </div>
-                <span class="card-power">{{ card.power || '-' }}</span>
-              </div>
-              
+            <article 
+              v-for="(card, index) in recentCards" 
+              :key="card.recentUniqueId || index" 
+              class="card-item clickable-card"
+              @click="openCardModal(card)"
+            >
               <div class="card-art">
                 <img 
                   v-if="card.image_url" 
@@ -156,7 +152,7 @@
       </section>
     </div>
 
-    <!-- 5. PANNEAU LATÉRAL (Visible sur PC, masqué sur Mobile) -->
+    <!-- 5. PANNEAU LATÉRAL -->
     <aside class="side-panel">
       <div class="profile-card">
         <div class="avatar">
@@ -215,23 +211,33 @@
       </div>
     </aside>
 
-    <!-- MODALE APERÇU DU SET -->
+    <!-- MODALES -->
     <SetPreviewModal 
       v-if="showSetPreview" 
       :setId="selectedSetId" 
       @close="showSetPreview = false" 
+    />
+
+    <!-- LA PROPRIÉTÉ ownedCount EST À PRÉSENT DYNAMIQUE -->
+    <CardModal 
+      v-if="selectedCard"
+      :card="selectedCard" 
+      :ownedCount="getOwnedCount(selectedCard)"
+      @close="selectedCard = null" 
     />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-
+import { supabase } from '../supabase'
 import op09PackImg from '../assets/images/booster/EMPERORS IN THE NEW WORLD- [OP-09].webp'
 import SetPreviewModal from '../components/SetPreviewModal.vue'
+import CardModal from '../components/CardModal.vue'
 
 const showSetPreview = ref(false)
 const selectedSetId = ref('OP-09')
+const selectedCard = ref(null)
 
 const imgWalletCards = 'https://www.figma.com/api/mcp/asset/c7cd2cb8-14bc-4da0-ba3c-84c2275b5cee.svg'
 const imgStore = 'https://www.figma.com/api/mcp/asset/1051881f-63f5-4e9d-8d45-2cff40d5d671.svg'
@@ -239,7 +245,6 @@ const imgRefreshCcw = 'https://www.figma.com/api/mcp/asset/844d043a-bab6-4e3c-bd
 const imgAward1 = 'https://www.figma.com/api/mcp/asset/fabfc9da-13fb-4c3c-8bd9-c8f72034f5f6.svg'
 const imgTrophy = 'https://www.figma.com/api/mcp/asset/d74cc36a-b71b-4b50-b47b-fc561524ef6d.svg'
 
-// CARROUSEL - CONFIGURATION ET LOGIQUE
 const currentSlide = ref(0)
 let timer = null
 
@@ -328,9 +333,9 @@ function stopAutoPlay() {
   if (timer) clearInterval(timer)
 }
 
-// LOGIQUE DES DONNÉES
 const rawDecks = ref([])
-const userRecentCollection = ref([])
+const recentCards = ref([])
+const cardQuantities = ref(new Map())
 
 function loadUserDecks() {
   const raw = window.localStorage.getItem('onepiece-decks')
@@ -339,15 +344,80 @@ function loadUserDecks() {
   }
 }
 
-function loadUserCollection() {
-  const raw = window.localStorage.getItem('onepiece-collection')
-  if (raw) {
-    try { userRecentCollection.value = JSON.parse(raw) } catch { userRecentCollection.value = [] }
+// CHARGEMENT DU NOMBRE DE EXEMPLAIRES POSSÉDÉS (SYNCHRONISÉ)
+async function loadUserCollectionFromSupabase() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    cardQuantities.value = new Map()
+    return
   }
+
+  const { data, error } = await supabase
+    .from('user_cards')
+    .select('card_id')
+    .eq('user_id', user.id)
+
+  if (error || !data) return
+
+  const qMap = new Map()
+  data.forEach(item => {
+    qMap.set(item.card_id, (qMap.get(item.card_id) || 0) + 1)
+  })
+
+  cardQuantities.value = qMap
+}
+
+function getOwnedCount(card) {
+  if (!card || !card.id) return 0
+  return cardQuantities.value.get(card.id) || 0
+}
+
+async function loadUserRecentCards() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  const { data: userCardsData, error: ucError } = await supabase
+    .from('user_cards')
+    .select('id, card_id, created_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(5)
+
+  if (ucError || !userCardsData || userCardsData.length === 0) {
+    recentCards.value = []
+    return
+  }
+
+  const cardIds = userCardsData.map(uc => uc.card_id)
+
+  const { data: cardsData, error: cError } = await supabase
+    .from('cards')
+    .select('*')
+    .in('id', cardIds)
+
+  if (cError || !cardsData) {
+    recentCards.value = []
+    return
+  }
+
+  const cardsMap = new Map(cardsData.map(c => [c.id, c]))
+  recentCards.value = userCardsData
+    .map(uc => {
+      const cardDetails = cardsMap.get(uc.card_id)
+      if (!cardDetails) return null
+      return {
+        ...cardDetails,
+        recentUniqueId: uc.id
+      }
+    })
+    .filter(Boolean)
+}
+
+function openCardModal(card) {
+  selectedCard.value = card
 }
 
 const decks = computed(() => rawDecks.value.slice(0, 3))
-const recentCards = computed(() => userRecentCollection.value.slice(-5).reverse())
 
 function getDeckCount(deck) {
   if (!deck || !deck.cards) return 0
@@ -359,15 +429,6 @@ function handleImageError(event) {
   if (event.target.nextElementSibling) {
     event.target.nextElementSibling.style.display = 'grid'
   }
-}
-
-function getCostClass(colorInput) {
-  if (!colorInput) return 'cost-red'
-  const c = String(colorInput).toLowerCase()
-  if (c.includes('green')) return 'cost-green'
-  if (c.includes('blue')) return 'cost-blue'
-  if (c.includes('purple')) return 'cost-purple'
-  return 'cost-red'
 }
 
 function getStatusClass(status) {
@@ -399,7 +460,8 @@ const missions = [
 
 onMounted(() => {
   loadUserDecks()
-  loadUserCollection()
+  loadUserCollectionFromSupabase()
+  loadUserRecentCards()
   startAutoPlay()
 })
 
@@ -409,6 +471,10 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.clickable-card {
+  cursor: pointer;
+}
+
 .home-shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 310px;
@@ -423,7 +489,6 @@ onUnmounted(() => {
   min-width: 0;
 }
 
-/* BANNIÈRE HERO EN CARROUSEL */
 .hero-card {
   position: relative;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -561,7 +626,6 @@ onUnmounted(() => {
   color: white;
 }
 
-/* FLÈCHES DU CARROUSEL */
 .nav-arrow {
   position: absolute;
   top: 50%;
@@ -590,7 +654,6 @@ onUnmounted(() => {
 .prev-arrow { left: 14px; }
 .next-arrow { right: 14px; }
 
-/* PUCES DU CARROUSEL (DOTS) */
 .dots-indicators {
   position: absolute;
   bottom: 12px;
@@ -616,7 +679,6 @@ onUnmounted(() => {
   border-radius: 4px;
 }
 
-/* AUTRES SECTIONS */
 .section-block {
   display: flex;
   flex-direction: column;
@@ -673,35 +735,9 @@ onUnmounted(() => {
 
 .card-item:hover { transform: translateY(-4px); }
 
-.card-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px;
-}
-
-.cost-pill {
-  width: 20px;
-  height: 20px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.cost-red { background: #ef4444; }
-.cost-green { background: #22c55e; }
-.cost-blue { background: #3b82f6; }
-.cost-purple { background: #8b5cf6; }
-
-.card-power { color: #eab308; font-size: 10px; font-weight: 700; }
-
 .card-art {
   flex: 1;
-  height: 120px;
+  height: 140px;
   overflow: hidden;
   background: #0d111a;
   position: relative;
@@ -888,70 +924,26 @@ onUnmounted(() => {
 .event-banner h4 { color: #ffffff; font-size: 12px; font-weight: 800; text-transform: uppercase; }
 .event-banner button { align-self: flex-start; border: none; background: #0d111a; color: white; border-radius: 6px; padding: 6px 12px; font-size: 10px; font-weight: 700; cursor: pointer; }
 
-/* REQUÊTES ADAPTATIVES (RESPONSIVE) */
 @media (max-width: 1200px) {
   .home-shell { grid-template-columns: 1fr; }
   .side-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 900px) {
-  .home-shell {
-    grid-template-columns: 1fr;
-  }
-
-  .side-panel {
-    display: none; /* Cacher la colonne de droite sur mobile */
-  }
-
-  .cards-grid { 
-    grid-template-columns: repeat(3, minmax(0, 1fr)); 
-  }
-
-  .quick-links-grid { 
-    grid-template-columns: repeat(2, minmax(0, 1fr)); 
-  }
+  .home-shell { grid-template-columns: 1fr; }
+  .side-panel { display: none; }
+  .cards-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .quick-links-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 640px) {
-  .slide-item {
-    flex-direction: column;
-    text-align: center;
-    padding: 20px 16px 36px;
-    gap: 16px;
-  }
-
-  .pack-illustration {
-    width: 100px;
-    height: 140px;
-  }
-
-  .hero-copy h2 {
-    font-size: 1.3rem;
-  }
-
-  .hero-copy p {
-    font-size: 0.8rem;
-  }
-
-  .hero-actions {
-    justify-content: center;
-    width: 100%;
-  }
-
-  .hero-actions .btn {
-    flex: 1;
-    padding: 10px 8px;
-    font-size: 0.75rem;
-  }
-
-  .nav-arrow {
-    width: 28px;
-    height: 28px;
-    font-size: 16px;
-  }
-
-  .cards-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  .slide-item { flex-direction: column; text-align: center; padding: 20px 16px 36px; gap: 16px; }
+  .pack-illustration { width: 100px; height: 140px; }
+  .hero-copy h2 { font-size: 1.3rem; }
+  .hero-copy p { font-size: 0.8rem; }
+  .hero-actions { justify-content: center; width: 100%; }
+  .hero-actions .btn { flex: 1; padding: 10px 8px; font-size: 0.75rem; }
+  .nav-arrow { width: 28px; height: 28px; font-size: 16px; }
+  .cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 </style>

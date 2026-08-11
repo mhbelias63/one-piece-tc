@@ -76,8 +76,8 @@
         </div>
       </header>
 
-      <main class="content-body">
-  <router-view @spend-gems="fetchUserProfile" />
+     <main class="content-body">
+  <router-view :userGems="profile.gems" @spend-gems="fetchUserProfile" />
 </main>
     </div>
 

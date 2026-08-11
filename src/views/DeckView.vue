@@ -409,25 +409,25 @@ function persistLocalDecks() {
 async function loadDecks() {
     loading.value = true
     
-    // 1. On tente de charger les decks distants Supabase
+    // 1. Charger les decks distants Supabase
     const remoteDecks = await fetchUserDecks()
     
-    // Si la BDD renvoie des decks, on les affiche
     if (remoteDecks && remoteDecks.length > 0) {
         decks.value = remoteDecks
     } else {
-        // Sinon, secours sur le localStorage
+        // 2. Si Supabase n'a rien, charger depuis le stockage local (ex: tes decks sur PC)
         const raw = window.localStorage.getItem('onepiece-decks')
         if (raw) {
             try { 
                 decks.value = JSON.parse(raw) 
                 
-                // Si on a trouvé des decks locaux, on tente de les pousser sur Supabase !
+                // 3. SYNCHRONISATION AUTOMATIQUE : On envoie les decks locaux vers Supabase !
                 const { data: { user } } = await supabase.auth.getUser()
-                if (user) {
+                if (user && decks.value.length > 0) {
                     for (const localDeck of decks.value) {
                         await saveUserDeck(localDeck)
                     }
+                    console.log("Decks locaux synchronisés avec Supabase !")
                 }
             } catch { 
                 decks.value = [] 

@@ -2,13 +2,15 @@
   <router-view v-if="isAuthPage" />
 
   <div v-else class="app-layout" :class="{ 'light-theme': isLightTheme }">
-    <!-- SIDEBAR PC / BARRE BASSE MOBILE -->
-    <aside class="navigation-sidebar">
-      <div class="brand-header">
+    <!-- NAVIGATION BARRE SUPÉRIEURE (TOPBAR UNIFIÉE) -->
+    <header class="topbar">
+      <!-- LOGO / BRAND -->
+      <router-link to="/" class="brand-link">
         <img src="/icon-title.png" alt="Logo" class="brand-logo" />
-      </div>
+      </router-link>
 
-      <nav class="nav-links">
+      <!-- MENU DE NAVIGATION HORIZONTAL -->
+      <nav class="nav-links-top">
         <router-link to="/" class="nav-item">
           <span class="icon">🏴‍☠️</span>
           <span class="label">Accueil</span>
@@ -30,11 +32,11 @@
           <span class="label">Boutique</span>
         </button>
       </nav>
-    </aside>
 
-    <!-- WORKSPACE PRINCIPAL -->
-    <div class="main-wrapper">
-      <header class="topbar">
+      <div class="spacer"></div>
+
+      <!-- PROFIL UTILISATEUR ET GEMMES -->
+      <div class="user-area">
         <!-- USER PROFILE BADGE & DROPDOWN -->
         <div class="profile-dropdown-wrapper" ref="dropdownRef">
           <div class="user-badge" @click="menuOpen = !menuOpen">
@@ -61,25 +63,21 @@
           </div>
         </div>
 
-        <div class="spacer"></div>
-
+        <!-- SEULEMENT LES GEMMES (PIÈCE JAUNE SUPPRIMÉE) -->
         <div class="currency-group">
           <div class="currency-badge">
-            <span class="icon">🪙</span>
-            <span class="amount">12 450</span>
+            <img src="/gem.png" alt="Gem" class="gem-icon" />
+            <span class="amount">{{ profile.gems ?? 2400 }}</span>
+            <button class="add-btn">+</button>
           </div>
-          <div class="currency-badge">
-  <img src="/gem.png" alt="Gem" class="gem-icon" />
-  <span class="amount">{{ profile.gems ?? 2400 }}</span>
-  <button class="add-btn">+</button>
-</div>
         </div>
-      </header>
+      </div>
+    </header>
 
-     <main class="content-body">
-  <router-view :userGems="profile.gems" @spend-gems="fetchUserProfile" />
-</main>
-    </div>
+    <!-- WORKSPACE PRINCIPAL -->
+    <main class="content-body">
+      <router-view :userGems="profile.gems" @spend-gems="fetchUserProfile" />
+    </main>
 
     <!-- MODAL DE MODIFICATION DE PROFIL -->
     <ProfileModal 
@@ -114,7 +112,8 @@ const profile = ref({
 })
 
 async function fetchUserProfile() {
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
   if (!user) return
 
   const { data, error } = await supabase
@@ -176,10 +175,77 @@ html, body {
 }
 
 .app-layout { 
-  display: flex; 
+  display: flex;
+  flex-direction: column; 
   min-height: 100vh; 
   width: 100%;
   overflow-x: hidden;
+}
+
+/* TOPBAR HORIZONTALE */
+.topbar {
+  height: 80px; /* Augmenté de 70px à 80px */
+  background: rgba(17, 24, 39, 0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  width: 100%;
+}
+
+.brand-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.brand-logo {
+  height: 60px;
+  max-width: 200px;
+  object-fit: contain;
+}
+
+.brand-logo:hover {
+  transform: scale(1.04); /* Petit effet au survol */
+}
+/* NAVIGATION TOPBAR */
+.nav-links-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  color: #94a3b8;
+  text-decoration: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-item:hover:not(.disabled) { background: rgba(255, 255, 255, 0.05); color: #ffffff; }
+.nav-item.router-link-active { background: #f59e0b; color: #111827; }
+.nav-item.disabled { opacity: 0.35; cursor: not-allowed; }
+
+.spacer { flex: 1; }
+
+.user-area {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 /* DROPDOWN PROFIL */
@@ -213,7 +279,7 @@ html, body {
 .profile-menu {
   position: absolute;
   top: calc(100% + 8px);
-  left: 0;
+  right: 0;
   background: #111827;
   border: 1px solid #273447;
   border-radius: 12px;
@@ -247,71 +313,8 @@ html, body {
 .logout-btn { color: #ef4444; }
 .logout-btn:hover { background: rgba(239, 68, 68, 0.1); }
 
-/* SIDEBAR PC & TOPBAR */
-.navigation-sidebar {
-  width: 240px;
-  background-color: #111827;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-  display: flex;
-  flex-direction: column;
-  padding: 20px 12px;
-  position: fixed;
-  top: 0; bottom: 0; left: 0;
-  z-index: 100;
-}
-
-.brand-header { padding: 10px; margin-bottom: 20px; text-align: center; }
-.brand-logo { max-width: 100%; height: 170px; object-fit: contain; }
-
-.nav-links { display: flex; flex-direction: column; gap: 6px; }
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  color: #94a3b8;
-  text-decoration: none;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 0.95rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
-  width: 100%;
-}
-
-.nav-item:hover:not(.disabled) { background: rgba(255, 255, 255, 0.05); color: #ffffff; }
-.nav-item.router-link-active { background: #f59e0b; color: #111827; }
-.nav-item.disabled { opacity: 0.35; cursor: not-allowed; }
-
-.main-wrapper { 
-  margin-left: 240px; 
-  flex: 1; 
-  display: flex; 
-  flex-direction: column; 
-  min-width: 0; 
-  width: calc(100% - 240px);
-}
-
-.topbar {
-  height: 60px;
-  background: rgba(11, 15, 25, 0.95);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  display: flex;
-  align-items: center;
-  padding: 0 20px;
-  position: sticky;
-  top: 0;
-  z-index: 90;
-  width: 100%;
-}
-
-.spacer { flex: 1; }
-
-.currency-group { display: flex; align-items: center; gap: 10px; }
+/* GEMMES */
+.currency-group { display: flex; align-items: center; }
 .currency-badge {
   display: flex;
   align-items: center;
@@ -338,40 +341,42 @@ html, body {
   place-items: center;
 }
 
-.content-body { padding: 24px; width: 100%; }
+.content-body { 
+  padding: 24px; 
+  width: 100%; 
+  flex: 1;
+}
 
 /* THEME CLAIR */
 .app-layout.light-theme { background-color: #f1f5f9; color: #0f172a; }
-.app-layout.light-theme .navigation-sidebar { background-color: #ffffff; border-right-color: #e2e8f0; }
-.app-layout.light-theme .topbar { background-color: rgba(255, 255, 255, 0.9); border-bottom-color: #e2e8f0; }
+.app-layout.light-theme .topbar { background-color: rgba(255, 255, 255, 0.95); border-bottom-color: #e2e8f0; }
 .app-layout.light-theme .nav-item { color: #64748b; }
 .app-layout.light-theme .user-badge, .app-layout.light-theme .currency-badge { background: #f8fafc; border-color: #cbd5e1; }
 
 /* ADAPTATIONS MOBILES (< 768px) */
 @media (max-width: 768px) {
-  .navigation-sidebar {
-    width: 100%;
-    height: 60px;
-    top: auto;
+  .topbar {
+    padding: 0 12px;
+    padding-top: env(safe-area-inset-top);
+    height: calc(60px + env(safe-area-inset-top));
+    gap: 8px;
+  }
+
+  .brand-logo { height: 32px; }
+
+  /* Sur mobile, le menu repasse en bas pour l'ergonomie des doigts */
+  .nav-links-top {
+    position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    flex-direction: row;
-    padding: 0 4px;
-    border-right: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    height: 60px;
     background: rgba(13, 17, 23, 0.98);
     backdrop-filter: blur(20px);
-    z-index: 1000;
-  }
-
-  .brand-header { display: none; }
-
-  .nav-links {
-    flex-direction: row;
-    width: 100%;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
     justify-content: space-around;
-    align-items: center;
+    padding: 0 4px;
+    z-index: 1000;
   }
 
   .nav-item {
@@ -386,53 +391,15 @@ html, body {
 
   .nav-item .icon { font-size: 1.1rem; }
 
-  .main-wrapper {
-    margin-left: 0;
-    width: 100%;
+  .content-body {
+    padding: 12px;
     padding-bottom: 70px;
   }
 
-  .topbar {
-    padding: 0 8px;
-    
-    /* Marge automatique pour pousser sous la Dynamic Island / l'encoche iOS */
-    padding-top: env(safe-area-inset-top);
-    /* On adapte la hauteur pour qu'elle s'agrandisse selon la zone réservée de l'iPhone */
-    height: calc(52px + env(safe-area-inset-top));
-    
-    gap: 4px;
-  }
-
-  .user-badge {
-    padding: 4px 6px;
-    gap: 4px;
-  }
-
-  .user-badge .avatar {
-    width: 26px;
-    height: 26px;
-  }
-
-  .user-info {
-    font-size: 0.7rem;
-  }
-
-  .user-level {
-    display: none;
-  }
-
-  .currency-group {
-    gap: 4px;
-  }
-
-  .currency-badge {
-    padding: 4px 6px;
-    font-size: 0.72rem;
-    gap: 3px;
-  }
-
-  .content-body {
-    padding: 8px;
-  }
+  .user-badge { padding: 4px 6px; gap: 4px; }
+  .user-badge .avatar { width: 26px; height: 26px; }
+  .user-info { font-size: 0.7rem; }
+  .user-level { display: none; }
+  .currency-badge { padding: 4px 6px; font-size: 0.72rem; }
 }
 </style>

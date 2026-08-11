@@ -75,17 +75,21 @@
                         </div>
                     </div>
 
+                    <!-- AFFICHAGE TRADUIT DES EFFETS -->
                     <div class="effect-box" v-if="hasEffect(parsedEffects.mainEffect)">
-                        <div class="effect-title">Effet</div>
-                        <div class="effect-text" v-html="formatEffectText(parsedEffects.mainEffect)"></div>
+                        <div class="effect-title">
+                            Effet 
+                            <span v-if="isTranslating" class="translating-indicator">(Traduction...)</span>
+                        </div>
+                        <div class="effect-text" v-html="translatedMainEffect"></div>
                     </div>
 
                     <div class="trigger-container" v-if="parsedEffects.triggerEffect">
                         <div class="trigger-badge">
-                            <span>Trigger</span>
+                            <span>Déclenchement</span>
                         </div>
                         <div class="trigger-box">
-                            <div class="effect-text" v-html="formatEffectText(parsedEffects.triggerEffect)"></div>
+                            <div class="effect-text" v-html="translatedTriggerEffect"></div>
                         </div>
                     </div>
                 </div>
@@ -161,7 +165,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchUserDecks, saveUserDeck } from '../services/playerService'
 import CardZoomModal from './CardZoomModal.vue'
@@ -181,6 +185,11 @@ const isFavorite = ref(false)
 const showZoom = ref(false)
 const showDeckPicker = ref(false)
 const userDecks = ref([])
+
+// Variables pour la traduction
+const translatedMainEffect = ref('')
+const translatedTriggerEffect = ref('')
+const isTranslating = ref(false)
 
 const totalOwned = computed(() => {
     return props.ownedCount ?? props.card?.owned_count ?? 0
@@ -314,7 +323,9 @@ function getColorStyle(colorInput) {
 const parsedEffects = computed(() => {
     if (!props.card?.effect) return { mainEffect: '', triggerEffect: '' }
 
-    const text = props.card.effect
+    // On supprime la phrase parasite d'errata de l'API
+    let text = props.card.effect.replace(/\s*This card has been officially errata'd\.?/gi, '')
+
     const triggerMatch = text.match(/(?:\[Trigger\]|Trigger:?)\s*(.*)/i)
 
     if (triggerMatch) {
@@ -327,41 +338,133 @@ const parsedEffects = computed(() => {
     return { mainEffect: text, triggerEffect: '' }
 })
 
-function formatEffectText(text) {
+// ==========================================
+// SYSTÈME DE TRADUCTION HYBRIDE (API + DICO)
+// ==========================================
+
+// Dictionnaire officiel TCG
+const tcgDictionary = {
+    "Blocker": "Bloqueur",
+    "Rush": "Initiative",
+    "Double Attack": "Double Attaque",
+    "Banish": "Exil",
+    "On Play": "Jouée",
+    "When Attacking": "En attaquant",
+    "On Your Opponent's Attack": "Attaque adverse",
+    "On Block": "En bloquant",
+    "Activate: Main": "Activation : Principale",
+    "Activate:Main": "Activation : Principale",
+    "Main": "Principale",
+    "Your Turn": "Votre tour",
+    "End of Your Turn": "Fin de votre tour",
+    "Opponent's Turn": "Tour adverse",
+    "End of Opponent's Turn": "Fin du tour adverse",
+    "On K.O.": "En cas de KO",
+    "Counter": "Contre",
+    "Once Per Turn": "Une fois par tour",
+    "Trash": "Défausser",
+    "rest": "épuiser",
+    "rested": "épuisé"
+}
+
+// Fonction qui remplace les mots clés par leurs balises visuelles françaises
+function formatTranslatedEffectText(text) {
     if (!text) return ''
 
     let formatted = text
-    const allBadgesRegex = '\\[DON!![^\\]]+\\]|\\[On Play\\]|\\[When Attacking\\]|\\[On Your Opponent\'s Attack\\]|\\[Activate:?\\s*Main\\]|\\[Main\\]|\\[Your Turn\\]|\\[End of Your Turn\\]|\\[Opponent\'s Turn\\]|\\[On K\\.O\\.\\]|\\[Blocker\\]|\\[Rush\\]|\\[Double Attack\\]|\\[Counter\\]|\\[Once Per Turn\\]'
+    
+    // Corrections des tournures de puissance
+    formatted = formatted.replace(/de\s+la\s+puissance/gi, 'de puissance')
+    formatted = formatted.replace(/-\s*(\d+)\s+de puissance/gi, '-$1 de puissance')
+    formatted = formatted.replace(/\+\s*(\d+)\s+de puissance/gi, '+$1 de puissance')
 
-    formatted = formatted.replace(new RegExp(`(?<!^)(?<!(?:${allBadgesRegex})\\s*)\\s*(${allBadgesRegex})`, 'gi'), '<br><br>$1')
-
+    formatted = formatted.replace(/(?<!^)(\[)/g, ' $1')
+    
     const styleStandard = (bg, color = '#fff') =>
         `display: inline-block; background-color: ${bg}; color: ${color}; padding: 2px 7px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; margin: 0 4px 2px 0; vertical-align: middle;`
 
-    formatted = formatted.replace(/\[Blocker\]/gi, `<span class="badge-orange-hexagon">Blocker</span>`)
-    formatted = formatted.replace(/\[Rush\]/gi, `<span class="badge-orange-hexagon">Rush</span>`)
-    formatted = formatted.replace(/\[Double Attack\]/gi, `<span class="badge-orange-hexagon">Double Attack</span>`)
+    formatted = formatted.replace(/\[Bloqueur\]/gi, `<span class="badge-orange-hexagon">Bloqueur</span>`)
+    formatted = formatted.replace(/\[Initiative\]/gi, `<span class="badge-orange-hexagon">Initiative</span>`)
+    formatted = formatted.replace(/\[Double Attaque\]/gi, `<span class="badge-orange-hexagon">Double Attaque</span>`)
 
-    formatted = formatted.replace(/\[On Play\]/gi, `<span style="${styleStandard('#2563eb')}">On Play</span>`)
-    formatted = formatted.replace(/\[When Attacking\]/gi, `<span style="${styleStandard('#2563eb')}">When Attacking</span>`)
-    formatted = formatted.replace(/\[On Your Opponent's Attack\]/gi, `<span style="${styleStandard('#2563eb')}">On Your Opponent's Attack</span>`)
-    formatted = formatted.replace(/\[Activate:?\s*Main\]/gi, `<span style="${styleStandard('#2563eb')}">Activate: Main</span>`)
-    formatted = formatted.replace(/\[Main\]/gi, `<span style="${styleStandard('#2563eb')}">Main</span>`)
-    formatted = formatted.replace(/\[Your Turn\]/gi, `<span style="${styleStandard('#2563eb')}">Your Turn</span>`)
-    formatted = formatted.replace(/\[End of Your Turn\]/gi, `<span style="${styleStandard('#2563eb')}">End of Your Turn</span>`)
-    formatted = formatted.replace(/\[Opponent's Turn\]/gi, `<span style="${styleStandard('#2563eb')}">Opponent's Turn</span>`)
-    formatted = formatted.replace(/\[On K\.O\.\]/gi, `<span style="${styleStandard('#2563eb')}">On K.O.</span>`)
+    const breakStr = '<br><br>'
+    formatted = formatted.replace(/\[Jouée\]/gi, `${breakStr}<span style="${styleStandard('#2563eb')}">Jouée</span>`)
+    formatted = formatted.replace(/\[En attaquant\]/gi, `${breakStr}<span style="${styleStandard('#2563eb')}">En attaquant</span>`)
+    formatted = formatted.replace(/\[Attaque adverse\]/gi, `${breakStr}<span style="${styleStandard('#2563eb')}">Attaque adverse</span>`)
+    
+    // Badge Activation : Principale blindé contre les espaces
+    formatted = formatted.replace(/\[\s*Activation\s*:\s*Principale\s*\]/gi, `${breakStr}<span style="${styleStandard('#2563eb')}">Activation : Principale</span>`)
+    formatted = formatted.replace(/\[\s*Principale\s*\]/gi, `${breakStr}<span style="${styleStandard('#2563eb')}">Principale</span>`)
 
-    formatted = formatted.replace(/\[Counter\]/gi, `<span style="${styleStandard('#dc2626')}">Counter</span>`)
-    formatted = formatted.replace(/\[Once Per Turn\]/gi, `<span style="display: inline-block; background-color: #ec4899; color: #fff; padding: 2px 10px; border-radius: 50px; font-weight: bold; font-size: 0.8rem; margin: 0 4px 2px 0; vertical-align: middle;">Once Per Turn</span>`)
+    formatted = formatted.replace(/\[Votre tour\]/gi, `${breakStr}<span style="${styleStandard('#2563eb')}">Votre tour</span>`)
+    formatted = formatted.replace(/\[Fin de votre tour\]/gi, `${breakStr}<span style="${styleStandard('#2563eb')}">Fin de votre tour</span>`)
+    formatted = formatted.replace(/\[Tour adverse\]/gi, `${breakStr}<span style="${styleStandard('#2563eb')}">Tour adverse</span>`)
+    formatted = formatted.replace(/\[En cas de KO\]/gi, `${breakStr}<span style="${styleStandard('#2563eb')}">En cas de KO</span>`)
+    formatted = formatted.replace(/\[Contre\]/gi, `${breakStr}<span style="${styleStandard('#dc2626')}">Contre</span>`)
+    
+    formatted = formatted.replace(/\[Une fois par tour\]/gi, `<span style="display: inline-block; background-color: #ec4899; color: #fff; padding: 2px 10px; border-radius: 50px; font-weight: bold; font-size: 0.8rem; margin: 0 4px 2px 0; vertical-align: middle;">Une fois par tour</span>`)
 
-    formatted = formatted.replace(/\[DON!! x(\d+)\]/gi, `<span style="${styleStandard('#000000', '#fff')}; border: 1px solid #444;">DON!! x$1</span>`)
-    formatted = formatted.replace(/\[DON!! -(\d+)\]/gi, `<span style="${styleStandard('#000000', '#fff')}; border: 1px solid #444;">DON!! -$1</span>`)
+    formatted = formatted.replace(/\[DON\s*!\s*!\s*x\s*(\d+)\]/gi, `<span style="${styleStandard('#000000', '#facc15')}; border: 1px solid #facc15;">DON!! x$1</span>`)
+    formatted = formatted.replace(/\[DON\s*!\s*!\s*-\s*(\d+)\]/gi, `<span style="${styleStandard('#000000', '#facc15')}; border: 1px solid #facc15;">DON!! -$1</span>`)
 
     formatted = formatted.replace(/\(([^)]+)\)/g, '<em style="color: #aaa;">($1)</em>')
 
-    return formatted
+    return formatted.replace(/^(?:\s*<br>\s*)+/gi, '').trim()
 }
+
+// Fonction d'appel à l'API de traduction
+async function translateText(englishText) {
+    if (!englishText || englishText === '-') return englishText
+
+    // 1. On "verrouille" les mots-clés du dictionnaire
+    let protectedText = englishText
+    for (const [en, fr] of Object.entries(tcgDictionary)) {
+        const regex = new RegExp(`\\[${en}\\]`, 'gi')
+        protectedText = protectedText.replace(regex, `[${fr}]`)
+    }
+
+    // 2. Vérification du cache local
+    const cacheKey = `trans_${btoa(unescape(encodeURIComponent(englishText))).substring(0, 30)}`
+    const cached = localStorage.getItem(cacheKey)
+    if (cached) return formatTranslatedEffectText(cached)
+
+    // 3. Si pas en cache, on appelle LibreTranslate / MyMemory API
+    try {
+        isTranslating.value = true
+        const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(protectedText)}&langpair=en|fr`)
+        const data = await response.json()
+        
+        if (data && data.responseData && data.responseData.translatedText) {
+            let result = data.responseData.translatedText
+            localStorage.setItem(cacheKey, result)
+            return formatTranslatedEffectText(result)
+        }
+    } catch (e) {
+        console.error("Erreur de traduction:", e)
+    } finally {
+        isTranslating.value = false
+    }
+    
+    return formatTranslatedEffectText(protectedText)
+}
+
+// Lancement automatique de la traduction à l'ouverture
+watch(() => props.card, async (newCard) => {
+    if (newCard) {
+        // On affiche d'abord le texte en anglais/protégé en attendant l'API
+        translatedMainEffect.value = formatTranslatedEffectText(parsedEffects.value.mainEffect)
+        translatedTriggerEffect.value = formatTranslatedEffectText(parsedEffects.value.triggerEffect)
+
+        // Puis on traduit
+        if (hasEffect(parsedEffects.value.mainEffect)) {
+            translatedMainEffect.value = await translateText(parsedEffects.value.mainEffect)
+        }
+        if (parsedEffects.value.triggerEffect) {
+            translatedTriggerEffect.value = await translateText(parsedEffects.value.triggerEffect)
+        }
+    }
+}, { immediate: true })
+
 
 function formatCardType(typeInput) {
     if (!typeInput || typeInput.includes('/')) return typeInput || ''
@@ -573,6 +676,14 @@ function hasEffect(effectText) {
     font-weight: 700;
     color: #9ca3af;
     margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.translating-indicator {
+    font-size: 0.75rem;
+    color: #f59e0b;
+    font-style: italic;
 }
 
 .effect-text {

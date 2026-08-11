@@ -53,6 +53,14 @@ import BoosterRevealStage from '../components/booster/BoosterRevealStage.vue'
 import BoosterSummaryStage from '../components/booster/BoosterSummaryStage.vue'
 import SetSelectionModal from '../components/booster/SetSelectionModal.vue'
 
+// 1. On accepte le solde de gemmes transmis par App.vue
+const props = defineProps({
+  userGems: {
+    type: Number,
+    default: 0
+  }
+})
+
 const emit = defineEmits(['spend-gems'])
 
 const step = ref('select')
@@ -71,7 +79,7 @@ const boosterModules = import.meta.glob('../assets/images/booster/*.{webp,png,jp
 const boosterList = computed(() => {
   const list = []
   for (const path in boosterModules) {
-    const filename = path.split('/').pop().replace(/\.(webp|png|jpg|jpeg)$/i, '')
+    const filename = path.split('/').pop().replace(/\.(webp|png|jpg,jpeg)$/i, '')
     const dashIndex = filename.indexOf('-')
     if (dashIndex === -1) continue
 
@@ -140,6 +148,15 @@ function isAlternative(card) {
 
 async function openPack() {
   if (opening.value || isCurrentSetEmpty.value) return
+
+  const price = selectedView.value === 'booster' ? 100 : 2400
+
+  // 🛑 OPTIMISATION CRUCIALE : VÉRIFICATION LOCALE AVANT TOUT APPEL RÉSEAU
+  if (props.userGems < price) {
+    alert("Tu n'as pas assez de gemmes pour cet achat !")
+    return // On stoppe immédiatement : 0 requête réseau consommée !
+  }
+
   opening.value = true
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -160,7 +177,7 @@ async function openPack() {
     return
   }
 
-  const price = selectedView.value === 'booster' ? 100 : 2400
+  // Double sécurité serveur
   const { data: success, error: gemError } = await supabase.rpc('deduct_gems', { user_id: user.id, amount: price })
 
   if (gemError || !success) {

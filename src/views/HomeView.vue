@@ -231,6 +231,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { supabase } from '../supabase'
+import { fetchCardsCached } from '../services/playerService'
 import op09PackImg from '../assets/images/booster/EMPERORS IN THE NEW WORLD- [OP-09].webp'
 import SetPreviewModal from '../components/SetPreviewModal.vue'
 import CardModal from '../components/CardModal.vue'
@@ -344,9 +345,8 @@ function loadUserDecks() {
   }
 }
 
-// CHARGEMENT DU NOMBRE DE EXEMPLAIRES POSSÉDÉS (SYNCHRONISÉ)
-async function loadUserCollectionFromSupabase() {
-  const { data: { user } } = await supabase.auth.getUser()
+// OPTIMISATION 1 : getSession() pour la collection
+async function loadUserCollectionFromSupabase(user) {
   if (!user) {
     cardQuantities.value = new Map()
     return
@@ -372,8 +372,8 @@ function getOwnedCount(card) {
   return cardQuantities.value.get(card.id) || 0
 }
 
-async function loadUserRecentCards() {
-  const { data: { user } } = await supabase.auth.getUser()
+// OPTIMISATION 2 : getSession() + Utilisation du cache global fetchCardsCached
+async function loadUserRecentCards(user) {
   if (!user) return
 
   const { data: userCardsData, error: ucError } = await supabase
@@ -388,19 +388,10 @@ async function loadUserRecentCards() {
     return
   }
 
-  const cardIds = userCardsData.map(uc => uc.card_id)
+  // Utilisation du cache des cartes au lieu d'une requête Supabase
+  const allCards = await fetchCardsCached()
+  const cardsMap = new Map(allCards.map(c => [c.id, c]))
 
-  const { data: cardsData, error: cError } = await supabase
-    .from('cards')
-    .select('*')
-    .in('id', cardIds)
-
-  if (cError || !cardsData) {
-    recentCards.value = []
-    return
-  }
-
-  const cardsMap = new Map(cardsData.map(c => [c.id, c]))
   recentCards.value = userCardsData
     .map(uc => {
       const cardDetails = cardsMap.get(uc.card_id)
@@ -458,11 +449,20 @@ const missions = [
   { label: 'Collectionner 3 cartes', count: '2/3', progress: 66 }
 ]
 
-onMounted(() => {
+onMounted(async () => {
   loadUserDecks()
-  loadUserCollectionFromSupabase()
-  loadUserRecentCards()
   startAutoPlay()
+
+  // Récupération unique de la session
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+
+  if (user) {
+    await Promise.all([
+      loadUserCollectionFromSupabase(user),
+      loadUserRecentCards(user)
+    ])
+  }
 })
 
 onUnmounted(() => {

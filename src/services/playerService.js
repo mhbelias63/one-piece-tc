@@ -1,17 +1,34 @@
 import { supabase } from '../supabase'
 
 // Cache en mémoire pour éviter de ré-interroger la table 'cards' à chaque affichage
-let cardsCache = null
+let cachedCards = null
 
 export async function fetchCardsCached() {
-  if (cardsCache && cardsCache.length > 0) {
-    return cardsCache
+  // 1. En mémoire RAM
+  if (cachedCards && cachedCards.length > 0) {
+    return cachedCards
   }
+
+  // 2. Dans le localStorage (survit au F5)
+  const localData = localStorage.getItem('op_cards_cache')
+  if (localData) {
+    try {
+      cachedCards = JSON.parse(localData)
+      return cachedCards
+    } catch (e) {
+      localStorage.removeItem('op_cards_cache')
+    }
+  }
+
+  // 3. Sinon, appel réseau unique Supabase
   const { data, error } = await supabase.from('cards').select('*')
   if (!error && data) {
-    cardsCache = data
+    cachedCards = data
+    localStorage.setItem('op_cards_cache', JSON.stringify(data))
+    return cachedCards
   }
-  return cardsCache || []
+
+  return []
 }
 
 // 1. Récupérer le profil du joueur

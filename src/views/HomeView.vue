@@ -218,7 +218,6 @@
       @close="showSetPreview = false" 
     />
 
-    <!-- LA PROPRIÉTÉ ownedCount EST À PRÉSENT DYNAMIQUE -->
     <CardModal 
       v-if="selectedCard"
       :card="selectedCard" 
@@ -345,63 +344,49 @@ function loadUserDecks() {
   }
 }
 
-// OPTIMISATION 1 : getSession() pour la collection
-async function loadUserCollectionFromSupabase(user) {
-  if (!user) {
-    cardQuantities.value = new Map()
-    return
-  }
+// 🚀 REQUÊTE UNIFIÉE : CHARGE LA COLLECTION ET LES 5 CARTES RÉCENTES EN 1 SEUL APPEL SUPABASE
+async function loadUserDataUnified(user) {
+  if (!user) return
 
-  const { data, error } = await supabase
+  const { data: userCards, error } = await supabase
     .from('user_cards')
-    .select('card_id')
+    .select('id, card_id, created_at')
     .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
 
-  if (error || !data) return
+  if (error || !userCards) return
 
+  // A. CALCUL DES QUANTITÉS POSSÉDÉES
   const qMap = new Map()
-  data.forEach(item => {
+  userCards.forEach(item => {
     qMap.set(item.card_id, (qMap.get(item.card_id) || 0) + 1)
   })
-
   cardQuantities.value = qMap
+
+  // B. EXTRACTION DES 5 PLUS RÉCENTES
+  const top5 = userCards.slice(0, 5)
+  if (top5.length > 0) {
+    const allCards = await fetchCardsCached() // Lit dans le localStorage si déjà chargé
+    const cardsMap = new Map(allCards.map(c => [c.id, c]))
+
+    recentCards.value = top5
+      .map(uc => {
+        const cardDetails = cardsMap.get(uc.card_id)
+        if (!cardDetails) return null
+        return {
+          ...cardDetails,
+          recentUniqueId: uc.id
+        }
+      })
+      .filter(Boolean)
+  } else {
+    recentCards.value = []
+  }
 }
 
 function getOwnedCount(card) {
   if (!card || !card.id) return 0
   return cardQuantities.value.get(card.id) || 0
-}
-
-// OPTIMISATION 2 : getSession() + Utilisation du cache global fetchCardsCached
-async function loadUserRecentCards(user) {
-  if (!user) return
-
-  const { data: userCardsData, error: ucError } = await supabase
-    .from('user_cards')
-    .select('id, card_id, created_at')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(5)
-
-  if (ucError || !userCardsData || userCardsData.length === 0) {
-    recentCards.value = []
-    return
-  }
-
-  // Utilisation du cache des cartes au lieu d'une requête Supabase
-  const allCards = await fetchCardsCached()
-  const cardsMap = new Map(allCards.map(c => [c.id, c]))
-
-  recentCards.value = userCardsData
-    .map(uc => {
-      const cardDetails = cardsMap.get(uc.card_id)
-      if (!cardDetails) return null
-      return {
-        ...cardDetails,
-        recentUniqueId: uc.id
-      }
-    })
-    .filter(Boolean)
 }
 
 function openCardModal(card) {
@@ -453,15 +438,11 @@ onMounted(async () => {
   loadUserDecks()
   startAutoPlay()
 
-  // Récupération unique de la session
   const { data: { session } } = await supabase.auth.getSession()
   const user = session?.user
 
   if (user) {
-    await Promise.all([
-      loadUserCollectionFromSupabase(user),
-      loadUserRecentCards(user)
-    ])
+    await loadUserDataUnified(user)
   }
 })
 

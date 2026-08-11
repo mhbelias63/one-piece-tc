@@ -83,12 +83,17 @@
               <option value="cost">Trier par coût</option>
             </select>
 
-            <!-- STYLE DE CARTE (DESKTOP: BOUTONS, MOBILE: SELECT) -->
             <select v-model="selectedType" class="select-field mobile-only-select">
               <option value="all">Tous les styles</option>
               <option value="standard">Classiques</option>
               <option value="parallel">Alternatives</option>
             </select>
+
+            <!-- BOUTON ACCORDÉON DE FILTRES POUR MOBILE -->
+            <button class="mobile-filter-toggle-btn" @click="showMobileFilters = !showMobileFilters">
+              <span>Filtres</span>
+              <span>{{ showMobileFilters ? '▲' : '▼' }}</span>
+            </button>
           </div>
 
           <div class="filter-group desktop-only-flex">
@@ -98,8 +103,8 @@
           </div>
         </div>
 
-        <!-- FILTRES SECONDAIRES (CARROUSEL HORIZONTAL SUR MOBILE) -->
-        <div class="secondary-filters">
+        <!-- FILTRES SECONDAIRES (MASQUÉS SUR MOBILE SAUF SI CLIQUÉ) -->
+        <div class="secondary-filters" :class="{ 'mobile-hidden': !showMobileFilters }">
           <!-- FILTRE DE POSSESSION -->
           <div class="filter-scroll-row">
             <button @click="setOwnershipFilter('all')" :class="['chip', { active: selectedOwnership === 'all' && !isRecentMode }]">Toutes</button>
@@ -334,6 +339,7 @@ const visibleCount = ref(24)
 const isRecentMode = ref(false)
 
 const showOptionsMenu = ref(false)
+const showMobileFilters = ref(false)
 const isListDisplay = ref(false)
 const showAllPages = ref(false)
 
@@ -648,7 +654,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* RANGER LES FILTRES SUR UNE SEULE LIGNE DÉROULANTE EN HORIZONTAL */
+/* RANGER LES FILTRES SUR UNE SEULE LIGNE DÉROULANTE EN HORIZONTAL SUR MOBILE */
 .filter-scroll-row {
   display: flex;
   align-items: center;
@@ -656,6 +662,9 @@ onMounted(async () => {
   overflow-x: auto;
   white-space: nowrap;
   padding-bottom: 4px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
@@ -670,6 +679,7 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
   width: 100%;
+  overflow: hidden;
 }
 
 .display-menu-wrapper {
@@ -742,6 +752,22 @@ onMounted(async () => {
 .check-mark {
   width: 14px;
   font-weight: 900;
+}
+
+/* BOUTON TOGGLE FILTRES MOBILE */
+.mobile-filter-toggle-btn {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  background: #f59e0b;
+  color: #111827;
+  border: none;
+  border-radius: 12px;
+  padding: 0 14px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  cursor: pointer;
+  height: 38px;
 }
 
 /* VUE EN LISTE */
@@ -836,12 +862,17 @@ onMounted(async () => {
   grid-template-columns: minmax(0, 1fr) 310px;
   gap: 24px;
   align-items: start;
+  width: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .main-panel {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 0;
 }
 
 .page-header {
@@ -988,6 +1019,7 @@ onMounted(async () => {
   padding: 10px 38px 10px 40px;
   color: #f8fafc;
   font-size: 0.9rem;
+  box-sizing: border-box;
 }
 
 .search-input:focus { outline: none; border-color: #eab308; }
@@ -1048,7 +1080,7 @@ onMounted(async () => {
   color: #0d111a;
 }
 
-.secondary-filters { display: flex; flex-direction: column; gap: 10px; }
+.secondary-filters { display: flex; flex-direction: column; gap: 10px; width: 100%; }
 
 .mobile-only-select { display: none; }
 .desktop-only-flex { display: flex; }
@@ -1247,7 +1279,7 @@ onMounted(async () => {
   cursor: pointer;
 }
 
-/* MEDIAS QUERIES SPÉCIFIQUES MOBILE ET ADAPTATION */
+/* MEDIA QUERIES SPÉCIFIQUES MOBILE */
 @media (max-width: 1200px) {
   .collection-shell { grid-template-columns: 1fr; }
   .side-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1260,11 +1292,17 @@ onMounted(async () => {
 
   .filter-bar { padding: 10px; gap: 8px; }
   .search-box { min-width: 100%; }
-  
+
   .desktop-only-flex { display: none !important; }
   .mobile-only-select { display: block !important; }
+  .mobile-filter-toggle-btn { display: flex !important; }
 
-  .selects-row { width: 100%; }
+  /* MASQUE TOUS LES PÂTÉS DE FILTRES SUR MOBILE PAR DÉFAUT */
+  .secondary-filters.mobile-hidden {
+    display: none !important;
+  }
+
+  .selects-row { width: 100%; gap: 6px; }
 
   .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .side-panel { display: none; }

@@ -162,9 +162,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { supabase } from '../supabase'
-import { fetchUserDecks, saveUserDeck } from '../services/playerService'
+import { fetchUserDecks, saveUserDeck, fetchCardsCached } from '../services/playerService'
 
 import DeckCard from '../components/deck/DeckCard.vue'
 import DeckFanStack from '../components/deck/DeckFanStack.vue'
@@ -186,6 +186,22 @@ const deckToDelete = ref(null)
 const isSelectionMode = ref(false)
 const selectedDeckIds = ref([])
 const showBatchDeleteModal = ref(false)
+
+// Debounce timer pour limiter les appels réseau lors de la modification des decks
+let saveTimer = null
+
+function triggerDebouncedSave() {
+    persistLocalDecks() // Mettre à jour le localStorage immédiatement
+    
+    if (saveTimer) clearTimeout(saveTimer)
+    
+    // Attendre 1,5 seconde d'inactivité avant d'envoyer la requête vers Supabase
+    saveTimer = setTimeout(async () => {
+        if (activeDeck.value) {
+            await saveUserDeck(activeDeck.value)
+        }
+    }, 1500)
+}
 
 function toggleSelectionMode() {
     isSelectionMode.value = !isSelectionMode.value
@@ -301,7 +317,7 @@ function selectCard(card) {
         targetDeck.leader = card
         targetDeck.cards = targetDeck.cards.filter(item => isColorCompatible(item.card || item, card))
         showLeaderSelection.value = false
-        saveActiveDeck()
+        triggerDebouncedSave()
         return
     }
 
@@ -323,7 +339,7 @@ function selectCard(card) {
         targetDeck.cards.push({ card, count: 1 })
     }
 
-    saveActiveDeck()
+    triggerDebouncedSave()
 }
 
 function removeLastVersionOfGroup(group) {
@@ -350,13 +366,7 @@ function removeCard(card) {
         targetDeck.cards.splice(index, 1)
     }
 
-    saveActiveDeck()
-}
-
-async function saveActiveDeck() {
-    if (!activeDeck.value) return
-    await saveUserDeck(activeDeck.value)
-    persistLocalDecks()
+    triggerDebouncedSave()
 }
 
 function getCardColors(card) {
@@ -409,25 +419,21 @@ function persistLocalDecks() {
 async function loadDecks() {
     loading.value = true
     
-    // 1. Charger les decks distants Supabase
     const remoteDecks = await fetchUserDecks()
     
     if (remoteDecks && remoteDecks.length > 0) {
         decks.value = remoteDecks
     } else {
-        // 2. Si Supabase n'a rien, charger depuis le stockage local (ex: tes decks sur PC)
         const raw = window.localStorage.getItem('onepiece-decks')
         if (raw) {
             try { 
                 decks.value = JSON.parse(raw) 
                 
-                // 3. SYNCHRONISATION AUTOMATIQUE : On envoie les decks locaux vers Supabase !
                 const { data: { user } } = await supabase.auth.getUser()
                 if (user && decks.value.length > 0) {
                     for (const localDeck of decks.value) {
                         await saveUserDeck(localDeck)
                     }
-                    console.log("Decks locaux synchronisés avec Supabase !")
                 }
             } catch { 
                 decks.value = [] 
@@ -457,13 +463,20 @@ function openEditor(deckId) {
 }
 
 async function exitEditor() {
-    if (activeDeck.value) {
-        await saveActiveDeck()
+    // Si un timer de sauvegarde automatique était planifié, on l'annule et on force l'envoi immédiat
+    if (saveTimer) {
+        clearTimeout(saveTimer)
+        saveTimer = null
     }
+    
+    if (activeDeck.value) {
+        await saveUserDeck(activeDeck.value)
+    }
+    
     editingDeckId.value = null
     showLeaderSelection.value = false
     searchCatalog.value = ''
-    await loadDecks()
+    persistLocalDecks()
 }
 
 async function createDeck(name) {
@@ -474,10 +487,7 @@ async function createDeck(name) {
         cards: []
     }
     
-    // Ajout local
     decks.value.push(newDeck)
-    
-    // Sauvegarde immédiate sur Supabase
     await saveUserDeck(newDeck)
     persistLocalDecks()
     
@@ -507,14 +517,18 @@ function activateLeaderSelection() {
 
 async function fetchCards() {
     loading.value = true
-    const { data, error } = await supabase.from('cards').select('*')
-    cards.value = error ? [] : (data || [])
+    cards.value = await fetchCardsCached()
     loading.value = false
 }
 
 onMounted(() => {
     loadDecks()
     fetchCards()
+})
+
+onUnmounted(() => {
+    // Nettoyage du timer si le composant est détruit
+    if (saveTimer) clearTimeout(saveTimer)
 })
 </script>
 

@@ -1,5 +1,19 @@
 import { supabase } from '../supabase'
 
+// Cache en mémoire pour éviter de ré-interroger la table 'cards' à chaque affichage
+let cardsCache = null
+
+export async function fetchCardsCached() {
+  if (cardsCache && cardsCache.length > 0) {
+    return cardsCache
+  }
+  const { data, error } = await supabase.from('cards').select('*')
+  if (!error && data) {
+    cardsCache = data
+  }
+  return cardsCache || []
+}
+
 // 1. Récupérer le profil du joueur
 export async function fetchUserProfile() {
   const { data: { user } } = await supabase.auth.getUser()
@@ -30,7 +44,6 @@ export async function fetchUserDecks() {
     return []
   }
 
-  // Si leader_id existe mais que le leader n'est pas hydraté, on adapte la structure
   return data || []
 }
 
@@ -95,7 +108,6 @@ export async function deductUserGems(amount) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { success: false, error: 'Non connecté' }
 
-  // 1. Récupérer le solde actuel
   const { data: profile, error: fetchError } = await supabase
     .from('profiles')
     .select('gems')
@@ -106,14 +118,12 @@ export async function deductUserGems(amount) {
     return { success: false, error: 'Impossible de récupérer les gemmes' }
   }
 
-  // 2. Vérifier si le joueur a assez de gemmes
   if (profile.gems < amount) {
     return { success: false, error: 'Gemmes insuffisantes !' }
   }
 
   const newGems = profile.gems - amount
 
-  // 3. Mettre à jour dans Supabase
   const { error: updateError } = await supabase
     .from('profiles')
     .update({ gems: newGems })

@@ -27,6 +27,13 @@
           <span class="icon">📦</span>
           <span class="label">Boosters</span>
         </router-link>
+        
+        <!-- ⚔️ BOUTON ARENA DUEL (PC) -->
+        <router-link to="/duel" class="nav-item duel-btn">
+          <span class="icon">💥</span>
+          <span class="label">Arena Duel</span>
+        </router-link>
+
         <button class="nav-item disabled">
           <span class="icon">🏪</span>
           <span class="label">Boutique</span>
@@ -63,7 +70,7 @@
           </div>
         </div>
 
-        <!-- SEULEMENT LES GEMMES (PIÈCE JAUNE SUPPRIMÉE) -->
+        <!-- GEMMES -->
         <div class="currency-group">
           <div class="currency-badge">
             <img src="/gem.png" alt="Gem" class="gem-icon" />
@@ -184,7 +191,7 @@ html, body {
 
 /* TOPBAR HORIZONTALE */
 .topbar {
-  height: 80px; /* Augmenté de 70px à 80px */
+  height: 80px;
   background: rgba(17, 24, 39, 0.95);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -211,8 +218,9 @@ html, body {
 }
 
 .brand-logo:hover {
-  transform: scale(1.04); /* Petit effet au survol */
+  transform: scale(1.04);
 }
+
 /* NAVIGATION TOPBAR */
 .nav-links-top {
   display: flex;
@@ -239,6 +247,23 @@ html, body {
 .nav-item:hover:not(.disabled) { background: rgba(255, 255, 255, 0.05); color: #ffffff; }
 .nav-item.router-link-active { background: #f59e0b; color: #111827; }
 .nav-item.disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* STYLE SPÉCIAL POUR LE BOUTON ARENA DUEL */
+.nav-item.duel-btn {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(245, 158, 11, 0.2));
+  border: 1px solid #ef4444;
+  color: #fca5a5;
+}
+
+.nav-item.duel-btn:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.nav-item.duel-btn.router-link-active {
+  background: #ef4444;
+  color: #ffffff;
+}
 
 .spacer { flex: 1; }
 
@@ -364,7 +389,7 @@ html, body {
 
   .brand-logo { height: 32px; }
 
-  /* Sur mobile, le menu repasse en bas pour l'ergonomie des doigts */
+  /* Sur mobile, le menu repasse en bas */
   .nav-links-top {
     position: fixed;
     bottom: 0;
@@ -386,7 +411,7 @@ html, body {
     gap: 2px;
     font-size: 0.62rem;
     border-radius: 8px;
-    width: 20%;
+    width: 18%;
   }
 
   .nav-item .icon { font-size: 1.1rem; }

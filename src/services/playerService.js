@@ -1,30 +1,37 @@
 import { supabase } from '../supabase'
 
-// Cache en mémoire pour éviter de ré-interroger la table 'cards' à chaque affichage
+// Cache en mémoire RAM
 let cachedCards = null
+// Clé v2 pour invalider l'ancien cache corrompu
+const CACHE_KEY = 'op_cards_cache_v2'
 
-export async function fetchCardsCached() {
+export async function fetchCardsCached(forceRefresh = false) {
+  if (forceRefresh) {
+    cachedCards = null
+    localStorage.removeItem(CACHE_KEY)
+  }
+
   // 1. En mémoire RAM
   if (cachedCards && cachedCards.length > 0) {
     return cachedCards
   }
 
-  // 2. Dans le localStorage (survit au F5)
-  const localData = localStorage.getItem('op_cards_cache')
+  // 2. Dans le localStorage (v2)
+  const localData = localStorage.getItem(CACHE_KEY)
   if (localData) {
     try {
       cachedCards = JSON.parse(localData)
       return cachedCards
     } catch (e) {
-      localStorage.removeItem('op_cards_cache')
+      localStorage.removeItem(CACHE_KEY)
     }
   }
 
-  // 3. Sinon, appel réseau unique Supabase
+  // 3. Appel réseau unique Supabase
   const { data, error } = await supabase.from('cards').select('*')
   if (!error && data) {
     cachedCards = data
-    localStorage.setItem('op_cards_cache', JSON.stringify(data))
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data))
     return cachedCards
   }
 
@@ -120,7 +127,7 @@ export async function addCardToCollection(cardId, count = 1) {
   }
 }
 
-// Déduire des gemmes lors d'un achat (ex: ouverture de booster)
+// Déduire des gemmes lors d'un achat
 export async function deductUserGems(amount) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { success: false, error: 'Non connecté' }

@@ -23,10 +23,15 @@
                 </div>
             </div>
 
-            <!-- Liens / Fonctionnalités à venir -->
+            <!-- Liens / Fonctionnalités -->
             <router-link to="/gacha" class="nav-link">Boosters / Gacha</router-link>
-            <button class="disabled-link">Decks (Bientôt)</button>
-            <button class="disabled-link">Collection (Bientôt)</button>
+            <router-link to="/decks" class="nav-link">Decks</router-link>
+            <router-link to="/cards" class="nav-link">Collection</router-link>
+            
+            <!-- ⚔️ NOUTAIL : BOUTON DUEL ARENA -->
+            <router-link to="/duel" class="nav-link duel-link">
+                <span class="duel-badge">⚔️</span> Arena Duel
+            </router-link>
         </nav>
 
         <!-- Zone Monnaie Joueur -->
@@ -76,7 +81,6 @@ function goHome() {
 
 function selectSet(setId) {
     setsDropdown.value = false
-    // Redirige vers /cards en passant le set dans l'URL (query param)
     router.push({ path: '/cards', query: { set: setId } })
 }
 </script>
@@ -125,6 +129,7 @@ function selectSet(setId) {
     font-size: 0.9rem;
     cursor: pointer;
     white-space: nowrap;
+    text-decoration: none;
     transition: color 0.2s;
 }
 
@@ -132,13 +137,22 @@ function selectSet(setId) {
     color: #f59e0b;
 }
 
-.disabled-link {
-    background: none;
-    border: none;
-    color: #666;
-    font-size: 0.9rem;
-    cursor: not-allowed;
-    white-space: nowrap;
+/* Style spécial pour le bouton DUEL */
+.duel-link {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(245, 158, 11, 0.2));
+    border: 1px solid #ef4444;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 800;
+    color: #fca5a5;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.duel-link:hover {
+    background: #ef4444;
+    color: #ffffff;
 }
 
 .dropdown-container {

@@ -44,7 +44,13 @@ const routes = [
   {
     path: '/deck',
     redirect: '/decks'
-  }
+  },
+
+  {
+  path: '/duel',
+  name: 'Duel',
+  component: () => import('../views/DuelView.vue')
+}
 ]
 
 const router = createRouter({

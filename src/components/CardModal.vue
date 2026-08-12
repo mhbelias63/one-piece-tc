@@ -75,13 +75,32 @@
                         </div>
                     </div>
 
-                    <!-- AFFICHAGE TRADUIT DES EFFETS -->
+                    <!-- AFFICHAGE TRADUIT DES EFFETS + BOUTON TOGGLE -->
                     <div class="effect-box" v-if="hasEffect(parsedEffects.mainEffect)">
-                        <div class="effect-title">
-                            Effet 
-                            <span v-if="isTranslating" class="translating-indicator">(Traduction...)</span>
+                        <div class="effect-header-row">
+                            <span class="effect-title">
+                                Effet 
+                                <span v-if="isTranslating" class="translating-indicator">(Traduction...)</span>
+                            </span>
+
+                            <!-- Bouton Bascule Traduction VO / FR -->
+                            <button 
+                                type="button" 
+                                class="lang-toggle-btn" 
+                                :class="{ 'active-fr': showTranslation }"
+                                @click="showTranslation = !showTranslation"
+                                title="Basculer entre VO et FR"
+                            >
+                                <span>EN</span>
+                                <span class="toggle-switch"></span>
+                                <span>FR</span>
+                            </button>
                         </div>
-                        <div class="effect-text" v-html="translatedMainEffect"></div>
+
+                        <div 
+                            class="effect-text" 
+                            v-html="showTranslation ? translatedMainEffect : parsedEffects.mainEffect"
+                        ></div>
                     </div>
 
                     <div class="trigger-container" v-if="parsedEffects.triggerEffect">
@@ -89,7 +108,10 @@
                             <span>Déclenchement</span>
                         </div>
                         <div class="trigger-box">
-                            <div class="effect-text" v-html="translatedTriggerEffect"></div>
+                            <div 
+                                class="effect-text" 
+                                v-html="showTranslation ? translatedTriggerEffect : parsedEffects.triggerEffect"
+                            ></div>
                         </div>
                     </div>
                 </div>
@@ -190,6 +212,7 @@ const userDecks = ref([])
 const translatedMainEffect = ref('')
 const translatedTriggerEffect = ref('')
 const isTranslating = ref(false)
+const showTranslation = ref(true)
 
 const totalOwned = computed(() => {
     return props.ownedCount ?? props.card?.owned_count ?? 0
@@ -323,7 +346,6 @@ function getColorStyle(colorInput) {
 const parsedEffects = computed(() => {
     if (!props.card?.effect) return { mainEffect: '', triggerEffect: '' }
 
-    // On supprime la phrase parasite d'errata de l'API
     let text = props.card.effect.replace(/\s*This card has been officially errata'd\.?/gi, '')
 
     const triggerMatch = text.match(/(?:\[Trigger\]|Trigger:?)\s*(.*)/i)
@@ -342,7 +364,6 @@ const parsedEffects = computed(() => {
 // SYSTÈME DE TRADUCTION HYBRIDE (API + DICO)
 // ==========================================
 
-// Dictionnaire officiel TCG
 const tcgDictionary = {
     "Blocker": "Bloqueur",
     "Rush": "Initiative",
@@ -362,73 +383,85 @@ const tcgDictionary = {
     "On K.O.": "En cas de KO",
     "Counter": "Contre",
     "Once Per Turn": "Une fois par tour",
-    "Trash": "Défausser",
+    "trash": "défausser",
+    "trash 1 card": "défausser 1 carte",
+    "gains": "gagne",
     "rest": "épuiser",
-    "rested": "épuisé"
+    "rested": "épuisé",
+    "set up": "redresser",
+    "setup": "redresser",
+    "set": "redresser"
 }
 
-// Fonction qui remplace les mots clés par leurs balises visuelles françaises
 function formatTranslatedEffectText(text) {
     if (!text) return ''
 
     let formatted = text
     
-    // Corrections des tournures de puissance
+    formatted = formatted.replace(/configurez/gi, 'Redressez')
+    formatted = formatted.replace(/configurer/gi, 'redresser')
+    formatted = formatted.replace(/définissez\s+ce\s+personnage\s+comme\s+actif/gi, 'Redressez ce Personnage')
+    formatted = formatted.replace(/carte\s+poubelle/gi, 'carte')
+    formatted = formatted.replace(/laisser\s+(\d+)\s+de\s+vos\s+cartes\s+DON\s*!\s*!/gi, 'épuiser $1 de vos cartes DON!!')
+    formatted = formatted.replace(/et\s+1\s+carte\s+de\s+votre\s+main\s*:\s*Redressez/gi, 'et défausser 1 carte de votre main : Redressez')
+    formatted = formatted.replace(/les\s+effets\s+et\s+les\s+gains\s+de\s+votre\s+adversaire/gi, 'un effet adverse')
+
     formatted = formatted.replace(/de\s+la\s+puissance/gi, 'de puissance')
     formatted = formatted.replace(/-\s*(\d+)\s+de puissance/gi, '-$1 de puissance')
     formatted = formatted.replace(/\+\s*(\d+)\s+de puissance/gi, '+$1 de puissance')
 
-    formatted = formatted.replace(/(?<!^)(\[)/g, ' $1')
-    
     const styleStandard = (bg, color = '#fff') =>
         `display: inline-block; background-color: ${bg}; color: ${color}; padding: 2px 7px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; margin: 0 4px 2px 0; vertical-align: middle;`
+
+    const styleDon = `display: inline-block; background-color: #000000; color: #ffffff; border: 1px solid #ffffff; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; margin: 0 4px 2px 0; vertical-align: middle;`
+
+    formatted = formatted.replace(/\[?\s*DON\s*!\s*!\s*x\s*(\d+)\s*\]?/gi, `<span style="${styleDon}">DON!! x$1</span>`)
+    formatted = formatted.replace(/\[?\s*DON\s*!\s*!\s*-\s*(\d+)\s*\]?/gi, `<span style="${styleDon}">DON!! -$1</span>`)
 
     formatted = formatted.replace(/\[Bloqueur\]/gi, `<span class="badge-orange-hexagon">Bloqueur</span>`)
     formatted = formatted.replace(/\[Initiative\]/gi, `<span class="badge-orange-hexagon">Initiative</span>`)
     formatted = formatted.replace(/\[Double Attaque\]/gi, `<span class="badge-orange-hexagon">Double Attaque</span>`)
 
     const breakStr = '<br><br>'
+    
     formatted = formatted.replace(/\[Jouée\]/gi, `${breakStr}<span style="${styleStandard('#2563eb')}">Jouée</span>`)
     formatted = formatted.replace(/\[En attaquant\]/gi, `${breakStr}<span style="${styleStandard('#2563eb')}">En attaquant</span>`)
     formatted = formatted.replace(/\[Attaque adverse\]/gi, `${breakStr}<span style="${styleStandard('#2563eb')}">Attaque adverse</span>`)
     
-    // Badge Activation : Principale blindé contre les espaces
     formatted = formatted.replace(/\[\s*Activation\s*:\s*Principale\s*\]/gi, `${breakStr}<span style="${styleStandard('#2563eb')}">Activation : Principale</span>`)
     formatted = formatted.replace(/\[\s*Principale\s*\]/gi, `${breakStr}<span style="${styleStandard('#2563eb')}">Principale</span>`)
 
-    formatted = formatted.replace(/\[Votre tour\]/gi, `${breakStr}<span style="${styleStandard('#2563eb')}">Votre tour</span>`)
+    formatted = formatted.replace(/\[Votre tour\]/gi, `<span style="${styleStandard('#2563eb')}">Votre tour</span>`)
     formatted = formatted.replace(/\[Fin de votre tour\]/gi, `${breakStr}<span style="${styleStandard('#2563eb')}">Fin de votre tour</span>`)
-    formatted = formatted.replace(/\[Tour adverse\]/gi, `${breakStr}<span style="${styleStandard('#2563eb')}">Tour adverse</span>`)
+    formatted = formatted.replace(/\[Tour adverse\]/gi, `<span style="${styleStandard('#2563eb')}">Tour adverse</span>`)
     formatted = formatted.replace(/\[En cas de KO\]/gi, `${breakStr}<span style="${styleStandard('#2563eb')}">En cas de KO</span>`)
     formatted = formatted.replace(/\[Contre\]/gi, `${breakStr}<span style="${styleStandard('#dc2626')}">Contre</span>`)
     
     formatted = formatted.replace(/\[Une fois par tour\]/gi, `<span style="display: inline-block; background-color: #ec4899; color: #fff; padding: 2px 10px; border-radius: 50px; font-weight: bold; font-size: 0.8rem; margin: 0 4px 2px 0; vertical-align: middle;">Une fois par tour</span>`)
 
-    formatted = formatted.replace(/\[DON\s*!\s*!\s*x\s*(\d+)\]/gi, `<span style="${styleStandard('#000000', '#facc15')}; border: 1px solid #facc15;">DON!! x$1</span>`)
-    formatted = formatted.replace(/\[DON\s*!\s*!\s*-\s*(\d+)\]/gi, `<span style="${styleStandard('#000000', '#facc15')}; border: 1px solid #facc15;">DON!! -$1</span>`)
-
+    formatted = formatted.replace(/(<\/span>)\s*<br\s*\/?>\s*<br\s*\/?>\s*(<span)/gi, '$1 $2')
     formatted = formatted.replace(/\(([^)]+)\)/g, '<em style="color: #aaa;">($1)</em>')
 
     return formatted.replace(/^(?:\s*<br>\s*)+/gi, '').trim()
 }
 
-// Fonction d'appel à l'API de traduction
-async function translateText(englishText) {
+// Remplace la fonction translateText par celle-ci :
+async function translateText(englishText, cardId = '') {
     if (!englishText || englishText === '-') return englishText
 
-    // 1. On "verrouille" les mots-clés du dictionnaire
     let protectedText = englishText
     for (const [en, fr] of Object.entries(tcgDictionary)) {
         const regex = new RegExp(`\\[${en}\\]`, 'gi')
         protectedText = protectedText.replace(regex, `[${fr}]`)
     }
 
-    // 2. Vérification du cache local
-    const cacheKey = `trans_${btoa(unescape(encodeURIComponent(englishText))).substring(0, 30)}`
+    // Clé unique basée sur l'ID de la carte + le texte (plus de collision !)
+    const rawKey = `${cardId}_${englishText}`
+    const cacheKey = `trans_${btoa(unescape(encodeURIComponent(rawKey))).substring(0, 40)}`
+    
     const cached = localStorage.getItem(cacheKey)
     if (cached) return formatTranslatedEffectText(cached)
 
-    // 3. Si pas en cache, on appelle LibreTranslate / MyMemory API
     try {
         isTranslating.value = true
         const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(protectedText)}&langpair=en|fr`)
@@ -448,23 +481,20 @@ async function translateText(englishText) {
     return formatTranslatedEffectText(protectedText)
 }
 
-// Lancement automatique de la traduction à l'ouverture
 watch(() => props.card, async (newCard) => {
     if (newCard) {
-        // On affiche d'abord le texte en anglais/protégé en attendant l'API
         translatedMainEffect.value = formatTranslatedEffectText(parsedEffects.value.mainEffect)
         translatedTriggerEffect.value = formatTranslatedEffectText(parsedEffects.value.triggerEffect)
 
-        // Puis on traduit
         if (hasEffect(parsedEffects.value.mainEffect)) {
-            translatedMainEffect.value = await translateText(parsedEffects.value.mainEffect)
+            // On passe newCard.id
+            translatedMainEffect.value = await translateText(parsedEffects.value.mainEffect, newCard.id)
         }
         if (parsedEffects.value.triggerEffect) {
-            translatedTriggerEffect.value = await translateText(parsedEffects.value.triggerEffect)
+            translatedTriggerEffect.value = await translateText(parsedEffects.value.triggerEffect, newCard.id)
         }
     }
 }, { immediate: true })
-
 
 function formatCardType(typeInput) {
     if (!typeInput || typeInput.includes('/')) return typeInput || ''
@@ -671,13 +701,51 @@ function hasEffect(effectText) {
     padding: 12px;
 }
 
+.effect-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
 .effect-title {
     font-size: 0.85rem;
     font-weight: 700;
     color: #9ca3af;
-    margin-bottom: 6px;
+}
+
+/* BOUTON TOGGLE FR / EN */
+.lang-toggle-btn {
     display: flex;
-    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 2px 6px;
+    cursor: pointer;
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: #94a3b8;
+    transition: all 0.2s ease;
+}
+
+.toggle-switch {
+    width: 14px;
+    height: 14px;
+    background: #64748b;
+    border-radius: 50%;
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.lang-toggle-btn.active-fr {
+    color: #fff;
+    border-color: #3b82f6;
+}
+
+.lang-toggle-btn.active-fr .toggle-switch {
+    transform: translateX(10px);
+    background: #3b82f6;
 }
 
 .translating-indicator {

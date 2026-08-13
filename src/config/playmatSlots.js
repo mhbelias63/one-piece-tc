@@ -1,122 +1,49 @@
-// Configuration des coordonnées et dimensions des zones du plateau (%)
-// Calculé d'après les dimensions exactes Photopea (1600x935 px)
+// Dimensions fixes des emplacements
+export const CARD_DIMENSIONS = {
+  standard: {
+    width: '76px',
+    height: '106px'
+  },
+  donRest: {
+    width: '96px',
+    height: '68px'
+  },
+  characterArea: {
+    width: '610px',
+    height: '110px'
+  }
+}
+
+// Emplacements avec positions ancrées
 export const PLAYMAT_SLOTS = {
-  // JOUEUR DU BAS (P1 - JOUEUR PRINCIPAL)
+  // JOUEUR DU BAS (P1)
   playerBottom: {
-    // 1. TRASH
-    trash: {
-      left: '89.25%',
-      bottom: '38.69%',
-      width: '9.13%',
-      height: '21.94%'
-    },
+    // Ancrage depuis la droite pour Trash/Deck pour garder un gap fixe
+    trash: { right: '30px', bottom: '38.69%' },
+    deck: { right: '120px', bottom: '38.69%' }, // 90px de décalage fixe = gap toujours identique
 
-    // 2. DECK
-    deck: {
-      left: '78.75%',
-      bottom: '38.69%',
-      width: '9.13%',
-      height: '21.94%'
-    },
+    // Ancrage depuis la gauche pour Stage/Life/Don
+    stage: { left: '30px', bottom: '42%' },
+    life: { left: '30px', bottom: '7.83%' },
+    donSet: { left: '120px', bottom: '7.62%' },
+    donRest: { left: '210px', bottom: '7.62%' }, // Gap fixe de 90px
 
-    // 3. DON REST
-    donRest: {
-      left: '23.44%',
-      bottom: '7.62%',
-      width: '11.05%',
-      height: '13.46%'
-    },
-
-    // 4. DON ACTIVE / SET
-    donSet: {
-      left: '14.88%',
-      bottom: '7.62%',
-      width: '7.86%',
-      height: '18.90%'
-    },
-
-    // 5. LEADER
-    leader: {
-      left: '45.38%',
-      bottom: '38.69%',
-      width: '9.13%',
-      height: '21.94%'
-    },
-
-    // 6. STAGE
-    stage: {
-      left: '2.93%',
-      bottom: '38.69%',
-      width: '9.13%',
-      height: '21.94%'
-    },
-
-    // 7. CHARACTER AREA (Mise à jour d'après tes nouvelles mesures)
-    characterArea: {
-      left: '13.19%',
-      bottom: '73.80%',
-      width: '73.63%',
-      height: '22.89%'
-    },
-
-    // 8. LIFE
-    life: {
-      left: '2.88%',
-      bottom: '7.83%',
-      width: '9.13%',
-      height: '21.94%'
-    }
+    // Ancrage central pour le plateau principal
+    leader: { left: '50%', bottom: '38.69%' },
+    characterArea: { left: '50%', bottom: '72%' }
   },
 
-  // JOUEUR DU HAUT (P2 - ADVERSAIRE)
+  // JOUEUR DU HAUT (P2)
   playerTop: {
-    trash: {
-      left: '89.25%',
-      bottom: '38.69%',
-      width: '9.13%',
-      height: '21.94%'
-    },
-    deck: {
-      left: '78.75%',
-      bottom: '38.69%',
-      width: '9.13%',
-      height: '21.94%'
-    },
-    donRest: {
-      left: '23.44%',
-      bottom: '7.62%',
-      width: '11.05%',
-      height: '13.46%'
-    },
-    donSet: {
-      left: '14.88%',
-      bottom: '7.62%',
-      width: '7.86%',
-      height: '18.90%'
-    },
-    leader: {
-      left: '45.38%',
-      bottom: '38.69%',
-      width: '9.13%',
-      height: '21.94%'
-    },
-    stage: {
-      left: '2.93%',
-      bottom: '38.69%',
-      width: '9.13%',
-      height: '21.94%'
-    },
-    characterArea: {
-      left: '13.19%',
-      bottom: '73.80%',
-      width: '73.63%',
-      height: '22.89%'
-    },
-    life: {
-      left: '2.88%',
-      bottom: '7.83%',
-      width: '9.13%',
-      height: '21.94%'
-    }
+    trash: { right: '30px', bottom: '38.69%' },
+    deck: { right: '120px', bottom: '38.69%' },
+
+    stage: { left: '30px', bottom: '42%' },
+    life: { left: '30px', bottom: '7.83%' },
+    donSet: { left: '120px', bottom: '7.62%' },
+    donRest: { left: '210px', bottom: '7.62%' },
+
+    leader: { left: '50%', bottom: '38.69%' },
+    characterArea: { left: '50%', bottom: '72%' }
   }
 }

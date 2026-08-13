@@ -1,173 +1,215 @@
 <template>
   <main class="board-container">
-    
     <!-- JOUEUR DU HAUT (ADVERSAIRE / P2) -->
     <section class="playmat-half player-top-mat">
       <div class="mat-scale-wrapper">
-        
-        <!-- 1. STAGE -->
-        <div class="virtual-slot-box slot-placeholder" :style="PLAYMAT_SLOTS.playerTop.stage">
-          <span class="slot-label">STAGE</span>
+        <!-- STAGE -->
+        <div class="virtual-slot-box slot-standard" :style="PLAYMAT_SLOTS.playerTop.stage">
+          <div v-if="duel.opponentStage.length > 0" class="card-display">
+            <img :src="getCardImage(duel.opponentStage[0])" :alt="duel.opponentStage[0].name" class="card-auto-fit" />
+          </div>
+          <span v-else class="slot-label">STAGE</span>
         </div>
 
-        <!-- 2. DON!! ACTIVE -->
-        <div class="virtual-slot-box" :style="PLAYMAT_SLOTS.playerTop.donSet">
-          <img src="/CardBackDon.png" alt="DON P2" class="card-auto-fit" />
-        </div>
-
-        <!-- 3. DON!! REST -->
-        <div class="virtual-slot-box slot-placeholder" :style="PLAYMAT_SLOTS.playerTop.donRest">
-          <span class="slot-label">DON!! REST</span>
-        </div>
-
-        <!-- 4. LEADER -->
-        <div class="virtual-slot-box slot-placeholder" :style="PLAYMAT_SLOTS.playerTop.leader">
-          <span class="slot-label">LEADER</span>
-        </div>
-
-        <!-- 5. DECK -->
-        <div class="virtual-slot-box" :style="PLAYMAT_SLOTS.playerTop.deck">
-          <img src="/img_deck.png" alt="Deck P2" class="card-auto-fit" />
-        </div>
-
-        <!-- 6. TRASH -->
-        <div class="virtual-slot-box slot-placeholder" :style="PLAYMAT_SLOTS.playerTop.trash">
-          <span class="slot-label">TRASH</span>
-        </div>
-
-        <!-- 7. LIFE AREA ADVERSAIRE -->
-        <div class="virtual-slot-box life-container" :style="PLAYMAT_SLOTS.playerTop.life">
-          <div class="life-card-single">
-            <img src="/CardBackRegular.png" alt="Life Card P2" class="card-auto-fit" />
+        <!-- DON ACTIVE -->
+        <div class="virtual-slot-box slot-standard" :style="PLAYMAT_SLOTS.playerTop.donSet">
+          <div v-if="duel.opponentActiveDon > 0" class="don-stack">
+            <img src="/CardBackDon.png" alt="DON" class="card-auto-fit" />
+            <span class="don-count">{{ duel.opponentActiveDon }}</span>
           </div>
         </div>
 
-        <!-- 8. CHARACTER AREA -->
-        <div class="virtual-slot-box slot-placeholder" :style="PLAYMAT_SLOTS.playerTop.characterArea">
-          <span class="slot-label">CHARACTER AREA</span>
+        <!-- DON RESTED -->
+        <div class="virtual-slot-box slot-don-rest" :style="PLAYMAT_SLOTS.playerTop.donRest">
+          <div v-if="duel.opponentRestedDon > 0" class="don-stack">
+            <img src="/CardBackDon.png" alt="DON REST" class="card-auto-fit opacity-50" />
+            <span class="don-count">{{ duel.opponentRestedDon }}</span>
+          </div>
         </div>
 
+        <!-- LEADER -->
+        <div class="virtual-slot-box slot-standard" :style="PLAYMAT_SLOTS.playerTop.leader">
+          <div v-if="duel.opponentLeader.length > 0" class="card-display">
+            <img :src="getCardImage(duel.opponentLeader[0])" :alt="duel.opponentLeader[0].name" class="card-auto-fit" />
+          </div>
+          <span v-else class="slot-label">LEADER</span>
+        </div>
+
+        <!-- DECK -->
+        <div class="virtual-slot-box slot-standard" :style="PLAYMAT_SLOTS.playerTop.deck">
+          <div v-if="duel.opponentDeck.length > 0" class="deck-stack">
+            <img 
+              v-for="n in Math.min(3, duel.opponentDeck.length)" 
+              :key="`deck-${n}`"
+              src="/CardBackRegular.png" 
+              alt="Deck" 
+              class="deck-card-layer"
+              :style="{ top: `-${(n-1)*2}px`, left: `-${(n-1)*1.5}px`, zIndex: n }"
+            />
+            <span class="deck-count-badge">{{ duel.opponentDeck.length }}</span>
+          </div>
+        </div>
+
+        <!-- TRASH -->
+        <div class="virtual-slot-box slot-standard" :style="PLAYMAT_SLOTS.playerTop.trash">
+          <span class="slot-label">TRASH</span>
+        </div>
+
+        <!-- LIFE -->
+        <div class="virtual-slot-box slot-standard" :style="PLAYMAT_SLOTS.playerTop.life">
+          <div v-if="duel.opponentLife.length > 0" class="life-display">
+            <img :src="getCardImage(duel.opponentLife[0])" :alt="`Life`" class="card-auto-fit" />
+          </div>
+        </div>
+
+        <!-- CHARACTER AREA (P2) -->
+        <div class="virtual-slot-box slot-character-area" :style="PLAYMAT_SLOTS.playerTop.characterArea">
+          <div class="character-grid">
+            <div 
+              v-for="card in duel.opponentDeploy" 
+              :key="card.uniqueInstanceId"
+              class="character-slot"
+              @click="selectCard(card)"
+              :class="{ 'is-rested': card.state === 'rested' }"
+            >
+              <img :src="getCardImage(card)" :alt="card.name" class="card-auto-fit" />
+              <div class="card-power">{{ card.getCurrentPower() }}</div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- JOUEUR DU BAS (JOUEUR PRINCIPAL / P1) -->
+    <!-- JOUEUR DU BAS (P1) -->
     <section class="playmat-half player-bottom-mat">
       <div class="mat-scale-wrapper">
-        
-        <!-- 1. STAGE -->
-        <div class="virtual-slot-box slot-placeholder" :style="PLAYMAT_SLOTS.playerBottom.stage">
-          <span class="slot-label">STAGE</span>
-        </div>
-
-        <!-- 2. DON!! ACTIVE -->
-        <div class="virtual-slot-box" :style="PLAYMAT_SLOTS.playerBottom.donSet">
-          <img src="/CardBackDon.png" alt="DON P1" class="card-auto-fit" />
-        </div>
-
-        <!-- 3. DON!! REST -->
-        <div class="virtual-slot-box slot-placeholder" :style="PLAYMAT_SLOTS.playerBottom.donRest">
-          <span class="slot-label">DON!! REST</span>
-        </div>
-
-        <!-- 4. LEADER -->
-        <div class="virtual-slot-box slot-placeholder" :style="PLAYMAT_SLOTS.playerBottom.leader">
-          <span class="slot-label">LEADER</span>
-        </div>
-
-        <!-- 5. DECK JOUEUR (EMPILEMENT VISUEL 3D) -->
-        <div 
-          class="virtual-slot-box deck-container" 
-          :style="PLAYMAT_SLOTS.playerBottom.deck"
-          @click="drawCard"
-          :title="`Piocher (Reste : ${deckCount})`"
-        >
-          <div v-if="deckCount > 0" class="deck-stack">
-            <img 
-              v-for="n in visibleDeckStack" 
-              :key="`deck-layer-${n}`"
-              src="/CardBackRegular.png" 
-              alt="Deck Card" 
-              class="deck-card-layer"
-              :style="{
-                top: `-${(n - 1) * 2}px`,
-                left: `-${(n - 1) * 1.5}px`,
-                zIndex: n
-              }"
-            />
-            <span class="deck-count-badge">{{ deckCount }}</span>
+        <!-- STAGE -->
+        <div class="virtual-slot-box slot-standard" :style="PLAYMAT_SLOTS.playerBottom.stage">
+          <div v-if="duel.playerStage.length > 0" class="card-display">
+            <img :src="getCardImage(duel.playerStage[0])" :alt="duel.playerStage[0].name" class="card-auto-fit" />
           </div>
-          <span v-else class="slot-label">DECK VIDE</span>
+          <span v-else class="slot-label">STAGE</span>
         </div>
 
-        <!-- 6. TRASH -->
-        <div class="virtual-slot-box slot-placeholder" :style="PLAYMAT_SLOTS.playerBottom.trash">
+        <!-- DON ACTIVE -->
+        <div class="virtual-slot-box slot-standard" :style="PLAYMAT_SLOTS.playerBottom.donSet">
+          <div v-if="duel.playerActiveDon > 0" class="don-stack">
+            <img src="/CardBackDon.png" alt="DON" class="card-auto-fit" />
+            <span class="don-count">{{ duel.playerActiveDon }}</span>
+          </div>
+        </div>
+
+        <!-- DON RESTED -->
+        <div class="virtual-slot-box slot-don-rest" :style="PLAYMAT_SLOTS.playerBottom.donRest">
+          <div v-if="duel.playerRestedDon > 0" class="don-stack">
+            <img src="/CardBackDon.png" alt="DON REST" class="card-auto-fit opacity-50" />
+            <span class="don-count">{{ duel.playerRestedDon }}</span>
+          </div>
+        </div>
+
+        <!-- LEADER -->
+        <div class="virtual-slot-box slot-standard" :style="PLAYMAT_SLOTS.playerBottom.leader">
+          <div v-if="duel.playerLeader.length > 0" class="card-display">
+            <img :src="getCardImage(duel.playerLeader[0])" :alt="duel.playerLeader[0].name" class="card-auto-fit" />
+          </div>
+          <span v-else class="slot-label">LEADER</span>
+        </div>
+
+        <!-- DECK -->
+        <div 
+          class="virtual-slot-box slot-standard clickable-deck" 
+          :style="PLAYMAT_SLOTS.playerBottom.deck"
+          @click="drawCardFromDeck"
+        >
+          <div v-if="duel.playerDeck.length > 0" class="deck-stack">
+            <img 
+              v-for="n in Math.min(3, duel.playerDeck.length)" 
+              :key="`deck-${n}`"
+              src="/CardBackRegular.png" 
+              alt="Deck" 
+              class="deck-card-layer"
+              :style="{ top: `-${(n-1)*2}px`, left: `-${(n-1)*1.5}px`, zIndex: n }"
+            />
+            <span class="deck-count-badge">{{ duel.playerDeck.length }}</span>
+          </div>
+        </div>
+
+        <!-- TRASH -->
+        <div class="virtual-slot-box slot-standard" :style="PLAYMAT_SLOTS.playerBottom.trash">
           <span class="slot-label">TRASH</span>
         </div>
 
-        <!-- 7. LIFE AREA JOUEUR -->
-        <div class="virtual-slot-box life-container" :style="PLAYMAT_SLOTS.playerBottom.life">
-          <div class="life-card-single">
-            <img src="/CardBackRegular.png" alt="Life Card P1" class="card-auto-fit" />
+        <!-- LIFE -->
+        <div class="virtual-slot-box slot-standard" :style="PLAYMAT_SLOTS.playerBottom.life">
+          <div v-if="duel.playerLife.length > 0" class="life-display">
+            <img :src="getCardImage(duel.playerLife[0])" :alt="`Life`" class="card-auto-fit" />
           </div>
         </div>
 
-        <!-- 8. CHARACTER AREA -->
-        <div class="virtual-slot-box slot-placeholder" :style="PLAYMAT_SLOTS.playerBottom.characterArea">
-          <span class="slot-label">CHARACTER AREA</span>
+        <!-- CHARACTER AREA (P1) -->
+        <div class="virtual-slot-box slot-character-area" :style="PLAYMAT_SLOTS.playerBottom.characterArea">
+          <div class="character-grid">
+            <div 
+              v-for="card in duel.playerDeploy" 
+              :key="card.uniqueInstanceId"
+              class="character-slot"
+              @click="selectCard(card)"
+              :class="{ 'is-rested': card.state === 'rested' }"
+            >
+              <img :src="getCardImage(card)" :alt="card.name" class="card-auto-fit" />
+              <div class="card-power">{{ card.getCurrentPower() }}</div>
+            </div>
+          </div>
         </div>
-
-        <!-- MAIN DU JOUEUR (RELIÉE ET UNIQUE) -->
-        <PlayerHand :hand="hand" @inspect-card="openCardModal" />
-
       </div>
     </section>
 
-    <!-- MODAL DÉTAILS CARTE DE LA MAIN -->
-   <DuelCardInspectModal 
-  v-if="selectedCard" 
-  :card="selectedCard" 
-  @close="selectedCard = null" 
-/>
+    <!-- PLAYER HAND -->
+    <PlayerHand :hand="duel.playerHand" @play-card="playCard" />
 
+    <!-- MODAL INSPECTION -->
+    <DuelCardInspectModal 
+      v-if="selectedCard" 
+      :card="selectedCard"
+      @close="selectedCard = null"
+    />
   </main>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
+import { useDuelStore } from '../../stores/duelStore'
 import { PLAYMAT_SLOTS } from '../../config/playmatSlots'
 import PlayerHand from './PlayerHand.vue'
 import DuelCardInspectModal from './DuelCardInspectModal.vue'
 
-const deckCount = ref(50)
-const hand = ref([])
+const duel = useDuelStore()
 const selectedCard = ref(null)
 
-const visibleDeckStack = computed(() => {
-  if (deckCount.value <= 0) return 0
-  return Math.min(5, Math.ceil(deckCount.value / 10))
-})
-
-function drawCard() {
-  if (deckCount.value <= 0) return
-
-  deckCount.value--
-  hand.value.push({
-    id: Date.now() + Math.random(),
-    name: 'Sanji',
-    type: 'Character',
-    rarity: 'SR',
-    cost: 2,
-    power: 3000,
-    color: 'Red',
-    attribute: 'Strike',
-    image: '/testcard.png',
-    image_url: '/testcard.png',
-    effect: '[On Play] Look at 5 cards from the top of your deck; reveal up to 1 Red character and add it to your hand.'
-  })
+function getCardImage(card) {
+  return card.image_url || card.image || '/CardBackRegular.png'
 }
 
-function openCardModal(card) {
+function selectCard(card) {
   selectedCard.value = card
+}
+
+function playCard(cardId) {
+  if (duel.currentPhase !== 'main') {
+    alert("Vous ne pouvez poser des cartes que durant la Main Phase !")
+    return
+  }
+
+  const success = duel.playCard(cardId)
+  if (!success) {
+    console.warn("Action impossible : Don insuffisant ou zone pleine.")
+  }
+}
+
+function drawCardFromDeck() {
+  if (!duel.engine) return
+  const currentPlayer = duel.engine.gameState.getCurrentPlayer()
+  duel.engine.drawFromDeck(currentPlayer)
 }
 </script>
 
@@ -187,9 +229,9 @@ function openCardModal(card) {
   position: relative;
   width: 100%;
   height: 50vh;
-  max-width: 100%;
   margin: 0;
   padding: 0;
+  overflow: visible; 
 }
 
 .player-top-mat {
@@ -208,87 +250,116 @@ function openCardModal(card) {
   height: 100%;
 }
 
+/* ==========================================================================
+   VIRTUAL SLOT BOX (TAILLES FIXES ET STRICTEMENT INVARIABLES)
+   ========================================================================== */
 .virtual-slot-box {
   position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px dashed rgba(245, 158, 11, 0.5);
-  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.slot-standard {
+  width: 76px !important;
+  height: 106px !important;
+}
+
+.slot-don-rest {
+  width: 96px !important;
+  height: 68px !important;
+}
+
+/* ==========================================================================
+   CHARACTER AREA & GRID SYSTEM
+   ========================================================================== */
+.slot-character-area {
+  width: 73.63% !important;
+  max-width: 610px;
+  height: 110px !important;
+  padding: 2px 10px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.slot-character-area,
+.virtual-slot-box[style*="left: 50%"] {
+  transform: translateX(-50%);
+}
+
+.character-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  width: 100%;
+  height: 100%;
+  gap: 8px;
+}
+
+.character-slot {
+  position: relative;
+  width: 76px !important;
+  height: 106px !important;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.character-slot:hover {
+  transform: translateY(-4px) scale(1.05);
+  filter: brightness(1.15);
+}
+
+.character-slot.is-rested {
+  transform: rotate(90deg);
 }
 
 .card-auto-fit {
-  width: 100%;
-  height: 100%;
-  object-fit: fill;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain;
   border-radius: 5px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
-}
-
-.slot-placeholder {
-  pointer-events: none;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
 }
 
 .slot-label {
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   font-weight: 900;
-  color: rgba(255, 255, 255, 0.7);
-  letter-spacing: 0.04em;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  color: #ffffff;
+  letter-spacing: 0.05em;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
   text-align: center;
 }
 
-/* ==========================================================================
-   LIFE AREA : CARTE UNIQUE VERTICALE
-   ========================================================================== */
-.life-container {
-  overflow: visible;
-  background: none;
-  border: none;
-}
-
-.life-card-single {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.2s ease;
-}
-
-.life-card-single:hover {
-  transform: scale(1.05);
-}
-
-/* ==========================================================================
-   DECK CONTAINER & STACK
-   ========================================================================== */
-.deck-container {
+.clickable-deck {
   cursor: pointer;
-  background: none !important;
-  border: none !important;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.clickable-deck:hover {
+  border-color: #f59e0b;
+  transform: scale(1.04);
 }
 
 .deck-stack {
-  position: relative;
   width: 100%;
   height: 100%;
+  position: relative;
 }
 
 .deck-card-layer {
   position: absolute;
   width: 100%;
   height: 100%;
-  object-fit: fill;
+  object-fit: contain;
   border-radius: 5px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-  transition: all 0.15s ease;
-}
-
-.deck-container:hover .deck-card-layer {
-  filter: brightness(1.15);
 }
 
 .deck-count-badge {
@@ -303,5 +374,32 @@ function openCardModal(card) {
   padding: 1px 5px;
   border-radius: 4px;
   z-index: 20;
+}
+
+/* Ré-inverse les cartes/textes de l'adversaire (P2) */
+.player-top-mat .virtual-slot-box {
+  transform: rotate(180deg);
+}
+
+.player-top-mat .slot-character-area,
+.player-top-mat .virtual-slot-box[style*="left: 50%"] {
+  transform: translateX(-50%) rotate(180deg) !important;
+}
+
+.card-power {
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0f172a;
+  color: #fbbf24;
+  border: 1px solid #fbbf24;
+  font-size: 0.68rem;
+  font-weight: 900;
+  padding: 1px 6px;
+  border-radius: 12px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+  z-index: 10;
 }
 </style>

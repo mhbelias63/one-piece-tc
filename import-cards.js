@@ -58,25 +58,38 @@ function checkIsSp(itemUrl, itemName) {
   return (
     url.includes('/sp/') || 
     url.includes('/sps/') || 
-    url.includes('sp') || // Détecte n'importe quel "sp" dans l'URL
+    url.includes('sp') || 
     name.includes('sp')
   )
 }
 
-// 1. Dictionnaire global de toutes les cartes
+// 1. Dictionnaire global de toutes les cartes (Boosters + Starter Decks)
 async function fetchAllOfficialCards() {
-  console.log(`🌐 [1/3] Chargement de la base globale optcgapi.com...`)
+  console.log(`🌐 [1/3] Chargement des bases optcgapi.com (Set + ST)...`)
   try {
-    const res = await fetch('https://optcgapi.com/api/allSetCards/')
-    if (!res.ok) throw new Error(`Status HTTP: ${res.status}`)
+    // On appelle les deux endpoints en parallèle
+    const [resSet, resST] = await Promise.all([
+      fetch('https://optcgapi.com/api/allSetCards/'),
+      fetch('https://www.optcgapi.com/api/allSTCards/')
+    ])
 
-    const allCards = await res.json()
-    console.log(`📦 ${allCards.length} cartes globales chargées.`)
+    if (!resSet.ok) throw new Error(`Status HTTP SetCards: ${resSet.status}`)
+    if (!resST.ok) throw new Error(`Status HTTP STCards: ${resST.status}`)
+
+    const setCards = await resSet.json()
+    const stCards = await resST.json()
+
+    const allCards = [...setCards, ...stCards]
+    console.log(`📦 ${allCards.length} cartes globales chargées (${setCards.length} boosters + ${stCards.length} ST decks).`)
 
     const cardsMap = new Map()
     allCards.forEach(card => {
       let rawCode = card.card_set_id || card.card_number || card.id || ''
-      const cleanCode = rawCode.replace(/^OP-?0*(\d+)/i, (m, p1) => `OP${p1.padStart(2, '0')}`)
+      // Normalisation des codes OP et ST (ex: ST-01 -> ST01)
+      const cleanCode = rawCode
+        .replace(/^OP-?0*(\d+)/i, (m, p1) => `OP${p1.padStart(2, '0')}`)
+        .replace(/^ST-?0*(\d+)/i, (m, p1) => `ST${p1.padStart(2, '0')}`)
+      
       if (cleanCode) {
         cardsMap.set(cleanCode, card)
         cardsMap.set(rawCode.toUpperCase(), card)
@@ -153,12 +166,11 @@ async function rebuildSet(setCode, folderPath) {
         if (!official) {
             official = {
                 card_name: item.name || baseCode,
-                rarity: 'SR',
+                rarity: 'C',
                 card_type: 'CHARACTER'
             }
         }
 
-        // Évite le doublon "OP09_OP09" mais préfixe si la carte vient d'un autre set (ex: OP07)
         let formattedBaseId = baseCode
         if (!baseCode.startsWith(setCode)) {
             formattedBaseId = `${setCode}_${baseCode}`
@@ -190,7 +202,7 @@ async function rebuildSet(setCode, folderPath) {
             id: cardId,
             name: cleanName,
             set_id: setCode,
-            rarity: official.rarity || 'SR',
+            rarity: official.rarity || 'C',
             type: official.card_type || null,
             color: official.card_color || null,
             power: official.card_power && official.card_power !== 'NULL' ? parseInt(official.card_power) : null,
@@ -218,5 +230,5 @@ async function rebuildSet(setCode, folderPath) {
     }
 }
 
-// Exécution
-rebuildSet('PRB02', 'OnePiece/MorpiceRamadan/PRB02')
+// Exemple pour importer le Starter Deck ST01
+rebuildSet('ST01', 'OnePiece/MorpiceRamadan/ST01')

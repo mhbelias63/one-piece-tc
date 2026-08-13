@@ -10,18 +10,18 @@
   >
     <div 
       v-for="(card, index) in hand" 
-      :key="card.id" 
+      :key="card.uniqueInstanceId || card.id" 
       class="hand-card-wrapper"
       :style="getCardStyle(index)"
-      @click="$emit('inspect-card', card)"
+      @click="handleCardClick(card)"
       @contextmenu.prevent="$emit('inspect-card', card)"
     >
       <img 
-        :src="card.image || card.image_url" 
-        :alt="card.name || 'Carte en main'" 
-        class="hand-card-img" 
-        draggable="false" 
-      />
+  :src="card.image_url || card.image || '/CardBackRegular.png'" 
+  :alt="card.name || 'Carte en main'" 
+  class="hand-card-img" 
+  draggable="false" 
+/>
     </div>
   </div>
 </template>
@@ -36,12 +36,18 @@ defineProps({
   }
 })
 
-defineEmits(['inspect-card'])
+// Déclarer play-card et inspect-card
+const emit = defineEmits(['play-card', 'inspect-card'])
 
 const handOffsetX = ref(0)
 const isDragging = ref(false)
 let startX = 0
 let initialOffset = 0
+
+function handleCardClick(card) {
+  // Émet l'action de jouer la carte lors du clic
+  emit('play-card', card.uniqueInstanceId || card.id)
+}
 
 function startDrag(e) {
   isDragging.value = true
@@ -77,12 +83,12 @@ function getCardStyle(index) {
 <style scoped>
 .player-hand-move-wrapper {
   position: absolute;
-  bottom: 0px;
+  bottom: 12px; /* Rehaussé pour décoller de la zone Life/Stage */
   left: 50%;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  z-index: 50;
+  z-index: 500; /* Priorité d'affichage au-dessus des cases */
   pointer-events: auto;
   cursor: grab;
   user-select: none;

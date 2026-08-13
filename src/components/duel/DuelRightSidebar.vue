@@ -13,15 +13,15 @@
       <div class="opponent-profile-tag">
         <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Shanks" class="mini-avatar" alt="P2" />
         <div class="p2-info">
-          <strong class="p2-name">Bayek (P2)</strong>
+          <strong class="p2-name">{{ duel.opponentPlayer?.name || 'Adversaire' }}</strong>
           <span class="p2-role">2ème Joueur</span>
         </div>
       </div>
 
       <!-- État du Tour -->
       <div class="turn-card">
-        <span class="turn-title">Tour 1</span>
-        <span class="phase-pill">Mulligan Phase</span>
+        <span class="turn-title">Tour {{ duel.turnCount }}</span>
+        <span class="phase-pill">{{ currentPhaseName }}</span>
       </div>
 
       <!-- Annuler / Rétablir -->
@@ -33,13 +33,20 @@
 
       <div class="spacer"></div>
 
-      <!-- Panneau de Décision / Phase d'Action -->
+      <!-- Panneau d'Actions Dynamique -->
       <div class="action-panel">
         <div class="action-header">Vos Actions</div>
         
-        <div class="mulligan-group">
-          <button class="action-btn green-btn">Garder la main</button>
-          <button class="action-btn red-btn">Repioche (Mulligan)</button>
+        <div class="action-group">
+          <!-- BOUTON PASSER LA PHASE -->
+          <button @click="handleNextPhase" class="action-btn next-phase-btn">
+            Passer la phase ({{ currentPhaseName }}) ➔
+          </button>
+
+          <!-- BOUTON FIN DE TOUR -->
+          <button @click="handleEndTurn" class="action-btn end-turn-btn">
+            Fin du tour
+          </button>
         </div>
       </div>
     </div>
@@ -47,10 +54,31 @@
 </template>
 
 <script setup>
-defineProps({
-  collapsed: Boolean
+import { computed } from 'vue'
+
+const props = defineProps({
+  collapsed: Boolean,
+  duel: {
+    type: Object,
+    required: true
+  }
 })
+
 defineEmits(['update:collapsed'])
+
+// Traduction ou nom lisible de la phase en cours
+const currentPhaseName = computed(() => {
+  if (!props.duel) return 'Attente'
+  return props.duel.getPhaseDisplayName()
+})
+
+function handleNextPhase() {
+  props.duel.nextPhase()
+}
+
+function handleEndTurn() {
+  props.duel.endTurn()
+}
 </script>
 
 <style scoped>
@@ -124,6 +152,7 @@ defineEmits(['update:collapsed'])
   border-radius: 20px;
   font-size: 0.75rem;
   font-weight: 800;
+  text-transform: uppercase;
 }
 
 .history-card {
@@ -159,7 +188,7 @@ defineEmits(['update:collapsed'])
 }
 .action-header { color: #94a3b8; font-weight: 800; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; text-align: center; }
 
-.mulligan-group { display: flex; flex-direction: column; gap: 10px; }
+.action-group { display: flex; flex-direction: column; gap: 10px; }
 .action-btn {
   width: 100%;
   padding: 12px;
@@ -171,7 +200,7 @@ defineEmits(['update:collapsed'])
   cursor: pointer;
   transition: transform 0.1s ease, opacity 0.2s ease;
 }
-.green-btn { background: #16a34a; }
-.red-btn { background: #dc2626; }
+.next-phase-btn { background: #f59e0b; color: #000; }
+.end-turn-btn { background: #dc2626; }
 .action-btn:hover { opacity: 0.9; transform: translateY(-1px); }
 </style>

@@ -30,7 +30,7 @@ export const PLAYMAT_SLOTS = {
 
     // Ancrage central pour le plateau principal
     leader: { left: '50%', bottom: '38.69%' },
-    characterArea: { left: '50%', bottom: '72%' }
+    characterArea: { left: '50%', bottom: '70%' }
   },
 
   // JOUEUR DU HAUT (P2)
@@ -41,9 +41,9 @@ export const PLAYMAT_SLOTS = {
     stage: { left: '30px', bottom: '42%' },
     life: { left: '30px', bottom: '7.83%' },
     donSet: { left: '120px', bottom: '7.62%' },
-    donRest: { left: '210px', bottom: '7.62%' },
+    donRest: { left: '210px', bottom: '10.62%' },
 
     leader: { left: '50%', bottom: '38.69%' },
-    characterArea: { left: '50%', bottom: '72%' }
+    characterArea: { left: '50%', bottom: '70%' }
   }
 }

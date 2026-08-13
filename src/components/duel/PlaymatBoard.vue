@@ -15,22 +15,31 @@
         <div class="virtual-slot-box slot-standard" :style="PLAYMAT_SLOTS.playerTop.donSet">
           <div v-if="duel.opponentActiveDon > 0" class="don-stack">
             <img src="/CardBackDon.png" alt="DON" class="card-auto-fit" />
-            <span class="don-count">{{ duel.opponentActiveDon }}</span>
+            <span class="count-badge-center">{{ duel.opponentActiveDon }}</span>
           </div>
+          <span v-else class="slot-label">DON</span>
         </div>
 
         <!-- DON RESTED -->
         <div class="virtual-slot-box slot-don-rest" :style="PLAYMAT_SLOTS.playerTop.donRest">
-          <div v-if="duel.opponentRestedDon > 0" class="don-stack">
-            <img src="/CardBackDon.png" alt="DON REST" class="card-auto-fit opacity-50" />
-            <span class="don-count">{{ duel.opponentRestedDon }}</span>
+          <div v-if="duel.opponentRestedDon > 0" class="don-stack is-rested-don">
+            <img src="/CardBackDon.png" alt="DON REST" class="card-auto-fit opacity-70" />
+            <span class="count-badge-center">{{ duel.opponentRestedDon }}</span>
           </div>
         </div>
 
-        <!-- LEADER -->
-        <div class="virtual-slot-box slot-standard" :style="PLAYMAT_SLOTS.playerTop.leader">
+        <!-- LEADER ADVERSE (P2) -->
+        <div 
+          class="virtual-slot-box slot-standard clickable-target" 
+          :style="PLAYMAT_SLOTS.playerTop.leader"
+          @click="duel.opponentLeader[0] && onCardClick(duel.opponentLeader[0], true)"
+          :class="{ 'is-rested': duel.opponentLeader[0]?.state === 'rested' }"
+        >
           <div v-if="duel.opponentLeader.length > 0" class="card-display">
             <img :src="getCardImage(duel.opponentLeader[0])" :alt="duel.opponentLeader[0].name" class="card-auto-fit" />
+            <div v-if="duel.opponentLeader[0]?.attachedDon?.length > 0" class="attached-don-badge">
+              +{{ duel.opponentLeader[0].attachedDon.length }} DON!!
+            </div>
           </div>
           <span v-else class="slot-label">LEADER</span>
         </div>
@@ -58,8 +67,10 @@
         <!-- LIFE -->
         <div class="virtual-slot-box slot-standard" :style="PLAYMAT_SLOTS.playerTop.life">
           <div v-if="duel.opponentLife.length > 0" class="life-display">
-            <img :src="getCardImage(duel.opponentLife[0])" :alt="`Life`" class="card-auto-fit" />
+            <img src="/CardBackRegular.png" alt="Life" class="card-auto-fit" />
+            <span class="count-badge-center life-badge">{{ duel.opponentLife.length }}</span>
           </div>
+          <span v-else class="slot-label">LIFE</span>
         </div>
 
         <!-- CHARACTER AREA (P2) -->
@@ -69,10 +80,13 @@
               v-for="card in duel.opponentDeploy" 
               :key="card.uniqueInstanceId"
               class="character-slot"
-              @click="selectCard(card)"
+              @click="onCardClick(card, true)"
               :class="{ 'is-rested': card.state === 'rested' }"
             >
               <img :src="getCardImage(card)" :alt="card.name" class="card-auto-fit" />
+              <div v-if="card.attachedDon?.length > 0" class="attached-don-badge">
+                +{{ card.attachedDon.length }} DON!!
+              </div>
               <div class="card-power">{{ card.getCurrentPower() }}</div>
             </div>
           </div>
@@ -92,25 +106,42 @@
         </div>
 
         <!-- DON ACTIVE -->
-        <div class="virtual-slot-box slot-standard" :style="PLAYMAT_SLOTS.playerBottom.donSet">
+        <div 
+          class="virtual-slot-box slot-standard clickable-don" 
+          :style="PLAYMAT_SLOTS.playerBottom.donSet"
+          @click="selectDon"
+          :class="{ 'is-don-selecting': isDonSelected }"
+        >
           <div v-if="duel.playerActiveDon > 0" class="don-stack">
             <img src="/CardBackDon.png" alt="DON" class="card-auto-fit" />
-            <span class="don-count">{{ duel.playerActiveDon }}</span>
+            <span class="count-badge-center">{{ duel.playerActiveDon }}</span>
           </div>
+          <span v-else class="slot-label">DON</span>
         </div>
 
         <!-- DON RESTED -->
         <div class="virtual-slot-box slot-don-rest" :style="PLAYMAT_SLOTS.playerBottom.donRest">
-          <div v-if="duel.playerRestedDon > 0" class="don-stack">
-            <img src="/CardBackDon.png" alt="DON REST" class="card-auto-fit opacity-50" />
-            <span class="don-count">{{ duel.playerRestedDon }}</span>
+          <div v-if="duel.playerRestedDon > 0" class="don-stack is-rested-don">
+            <img src="/CardBackDon.png" alt="DON REST" class="card-auto-fit opacity-70" />
+            <span class="count-badge-center">{{ duel.playerRestedDon }}</span>
           </div>
         </div>
 
-        <!-- LEADER -->
-        <div class="virtual-slot-box slot-standard" :style="PLAYMAT_SLOTS.playerBottom.leader">
+        <!-- NOTRE LEADER (P1) -->
+        <div 
+          class="virtual-slot-box slot-standard clickable-attacker" 
+          :style="PLAYMAT_SLOTS.playerBottom.leader"
+          @click="duel.playerLeader[0] && onCardClick(duel.playerLeader[0], false)"
+          :class="{ 
+            'is-attacking': selectedAttacker?.uniqueInstanceId === duel.playerLeader[0]?.uniqueInstanceId,
+            'is-rested': duel.playerLeader[0]?.state === 'rested'
+          }"
+        >
           <div v-if="duel.playerLeader.length > 0" class="card-display">
             <img :src="getCardImage(duel.playerLeader[0])" :alt="duel.playerLeader[0].name" class="card-auto-fit" />
+            <div v-if="duel.playerLeader[0]?.attachedDon?.length > 0" class="attached-don-badge">
+              +{{ duel.playerLeader[0].attachedDon.length }} DON!!
+            </div>
           </div>
           <span v-else class="slot-label">LEADER</span>
         </div>
@@ -142,8 +173,10 @@
         <!-- LIFE -->
         <div class="virtual-slot-box slot-standard" :style="PLAYMAT_SLOTS.playerBottom.life">
           <div v-if="duel.playerLife.length > 0" class="life-display">
-            <img :src="getCardImage(duel.playerLife[0])" :alt="`Life`" class="card-auto-fit" />
+            <img src="/CardBackRegular.png" alt="Life" class="card-auto-fit" />
+            <span class="count-badge-center life-badge">{{ duel.playerLife.length }}</span>
           </div>
+          <span v-else class="slot-label">LIFE</span>
         </div>
 
         <!-- CHARACTER AREA (P1) -->
@@ -153,10 +186,16 @@
               v-for="card in duel.playerDeploy" 
               :key="card.uniqueInstanceId"
               class="character-slot"
-              @click="selectCard(card)"
-              :class="{ 'is-rested': card.state === 'rested' }"
+              @click="onCardClick(card, false)"
+              :class="{ 
+                'is-rested': card.state === 'rested',
+                'is-attacking': selectedAttacker?.uniqueInstanceId === card.uniqueInstanceId
+              }"
             >
               <img :src="getCardImage(card)" :alt="card.name" class="card-auto-fit" />
+              <div v-if="card.attachedDon?.length > 0" class="attached-don-badge">
+                +{{ card.attachedDon.length }} DON!!
+              </div>
               <div class="card-power">{{ card.getCurrentPower() }}</div>
             </div>
           </div>
@@ -166,6 +205,53 @@
 
     <!-- PLAYER HAND -->
     <PlayerHand :hand="duel.playerHand" @play-card="playCard" />
+
+    <!-- MODAL BLOQUEUR (ÉTAPE DE BLOCAGE - 7-1-2) -->
+    <div v-if="isBlockingPhase" class="blocker-modal-overlay">
+      <div class="blocker-modal">
+        <h3>🛡️ Étape de Blocage</h3>
+        <p>Un Bloqueur souhaite-t-il s'interposer ?</p>
+        
+        <div class="blocker-options">
+          <div 
+            v-for="blocker in availableBlockers" 
+            :key="blocker.uniqueInstanceId"
+            class="blocker-card-preview"
+            @click="selectBlocker(blocker)"
+          >
+            <img :src="getCardImage(blocker)" :alt="blocker.name" />
+            <span>{{ blocker.name }}</span>
+          </div>
+        </div>
+
+        <button class="btn-pass-block" @click="passBlock">Ne pas bloquer</button>
+      </div>
+    </div>
+
+    <!-- MODAL ÉTAPE DE CONTRE (7-1-3) -->
+    <div v-if="isCounterPhase" class="counter-modal-overlay">
+      <div class="counter-modal">
+        <h3>⚡ Étape de Contre</h3>
+        <p>Défaussez des cartes de votre main pour augmenter votre défense (+1000 / +2000) :</p>
+        
+        <div v-if="defenderHandWithCounter.length > 0" class="counter-hand-grid">
+          <div 
+            v-for="card in defenderHandWithCounter" 
+            :key="card.uniqueInstanceId"
+            class="counter-card-item"
+            @click="useCounterCard(card)"
+          >
+            <img :src="getCardImage(card)" :alt="card.name" />
+            <span class="counter-badge-value">+{{ card.counterPower }}</span>
+          </div>
+        </div>
+        <p v-else class="no-counter-text">Aucune carte avec valeur de Contre en main.</p>
+
+        <button class="btn-resolve-combat" @click="resolveCombatWithCounter">
+          Valider et Résoudre le Combat
+        </button>
+      </div>
+    </div>
 
     <!-- MODAL INSPECTION -->
     <DuelCardInspectModal 
@@ -177,21 +263,52 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useDuelStore } from '../../stores/duelStore'
+import { useCombatManager } from '../../composables/useCombatManager'
+import { useDonManager } from '../../composables/useDonManager'
 import { PLAYMAT_SLOTS } from '../../config/playmatSlots'
 import PlayerHand from './PlayerHand.vue'
 import DuelCardInspectModal from './DuelCardInspectModal.vue'
 
 const duel = useDuelStore()
+const { 
+  selectedAttacker, 
+  isBlockingPhase, 
+  availableBlockers, 
+  isCounterPhase,
+  handleCardClick, 
+  selectBlocker, 
+  passBlock,
+  useCounterCard,
+  resolveCombatWithCounter
+} = useCombatManager()
+
+const { isDonSelected, selectDon, attachDonTo } = useDonManager()
 const selectedCard = ref(null)
+
+// Récupère la main du joueur défendant qui contient des cartes avec valeur de Contre (> 0)
+const defenderHandWithCounter = computed(() => {
+  if (!duel.engine || !duel.engine.gameState) return []
+  const defenderOwner = duel.engine.gameState.getOpponentPlayer()
+  return defenderOwner.getZone('hand').filter(c => c.counterPower > 0)
+})
 
 function getCardImage(card) {
   return card.image_url || card.image || '/CardBackRegular.png'
 }
 
-function selectCard(card) {
-  selectedCard.value = card
+function onCardClick(card, isOpponent = false) {
+  if (isDonSelected.value && !isOpponent) {
+    const attached = attachDonTo(card)
+    if (attached) return
+  }
+
+  const result = handleCardClick(card, isOpponent)
+  
+  if (result.action === 'inspect') {
+    selectedCard.value = card
+  }
 }
 
 function playCard(cardId) {
@@ -250,9 +367,7 @@ function drawCardFromDeck() {
   height: 100%;
 }
 
-/* ==========================================================================
-   VIRTUAL SLOT BOX (TAILLES FIXES ET STRICTEMENT INVARIABLES)
-   ========================================================================== */
+/* VIRTUAL SLOT BOX */
 .virtual-slot-box {
   position: absolute;
   display: flex;
@@ -263,7 +378,7 @@ function drawCardFromDeck() {
   border: 2px solid rgba(255, 255, 255, 0.85);
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
   box-sizing: border-box;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, transform 0.2s ease;
 }
 
 .slot-standard {
@@ -276,16 +391,90 @@ function drawCardFromDeck() {
   height: 68px !important;
 }
 
-/* ==========================================================================
-   CHARACTER AREA & GRID SYSTEM
-   ========================================================================== */
+.clickable-target, .clickable-attacker, .clickable-don {
+  cursor: pointer !important;
+}
+
+.clickable-target:hover {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.6) !important;
+}
+
+.clickable-don.is-don-selecting {
+  outline: 3px solid #f59e0b !important;
+  box-shadow: 0 0 15px #f59e0b, 0 0 25px #fbbf24 !important;
+  transform: scale(1.08) !important;
+}
+
+/* DON & LIFE */
+.don-stack, .life-display, .card-display {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.is-rested-don .card-auto-fit {
+  transform: rotate(90deg);
+  width: 68px !important;
+  height: 96px !important;
+}
+
+.count-badge-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(15, 23, 42, 0.9);
+  color: #fbbf24;
+  border: 2px solid #fbbf24;
+  font-size: 0.95rem;
+  font-weight: 900;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+  z-index: 15;
+}
+
+.life-badge {
+  background: rgba(15, 23, 42, 0.9);
+  color: #22c55e;
+  border-color: #22c55e;
+}
+
+.attached-don-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #f59e0b;
+  color: #000;
+  font-size: 0.65rem;
+  font-weight: 900;
+  padding: 1px 5px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+  border: 1px solid #fff;
+  z-index: 35;
+}
+
+.opacity-70 {
+  opacity: 0.7;
+}
+
+/* CHARACTER AREA */
 .slot-character-area {
   width: 73.63% !important;
   max-width: 610px;
   height: 110px !important;
   padding: 2px 10px;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible !important;
 }
 
 .slot-character-area,
@@ -308,16 +497,27 @@ function drawCardFromDeck() {
   height: 106px !important;
   flex-shrink: 0;
   cursor: pointer;
+  z-index: 10;
   transition: transform 0.2s ease, filter 0.2s ease;
 }
 
 .character-slot:hover {
   transform: translateY(-4px) scale(1.05);
   filter: brightness(1.15);
+  z-index: 20;
 }
 
-.character-slot.is-rested {
+.character-slot.is-rested,
+.virtual-slot-box.is-rested .card-auto-fit {
   transform: rotate(90deg);
+}
+
+.character-slot.is-attacking,
+.virtual-slot-box.is-attacking {
+  outline: 3px solid #ef4444 !important;
+  box-shadow: 0 0 15px #ef4444, 0 0 25px #f59e0b !important;
+  transform: translateY(-8px) scale(1.08) !important;
+  z-index: 100 !important;
 }
 
 .card-auto-fit {
@@ -325,7 +525,7 @@ function drawCardFromDeck() {
   height: 100% !important;
   object-fit: contain;
   border-radius: 5px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
 }
 
 .slot-label {
@@ -376,7 +576,6 @@ function drawCardFromDeck() {
   z-index: 20;
 }
 
-/* Ré-inverse les cartes/textes de l'adversaire (P2) */
 .player-top-mat .virtual-slot-box {
   transform: rotate(180deg);
 }
@@ -388,7 +587,7 @@ function drawCardFromDeck() {
 
 .card-power {
   position: absolute;
-  bottom: -4px;
+  bottom: -6px;
   left: 50%;
   transform: translateX(-50%);
   background: #0f172a;
@@ -400,6 +599,171 @@ function drawCardFromDeck() {
   border-radius: 12px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.8);
   white-space: nowrap;
-  z-index: 10;
+  z-index: 30;
+}
+
+/* ==========================================================================
+   MODAL ÉTAPE DE BLOCAGE (7-1-2)
+   ========================================================================== */
+.blocker-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.blocker-modal {
+  background: #0f172a;
+  border: 2px solid #f59e0b;
+  border-radius: 12px;
+  padding: 20px 30px;
+  text-align: center;
+  color: #fff;
+  max-width: 450px;
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.4);
+}
+
+.blocker-modal h3 {
+  color: #f59e0b;
+  margin-top: 0;
+}
+
+.blocker-options {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.blocker-card-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.blocker-card-preview:hover {
+  transform: scale(1.1);
+}
+
+.blocker-card-preview img {
+  width: 70px;
+  height: 98px;
+  border-radius: 5px;
+  border: 2px solid #38bdf8;
+}
+
+.blocker-card-preview span {
+  font-size: 0.7rem;
+  margin-top: 4px;
+}
+
+.btn-pass-block {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-pass-block:hover {
+  background: #dc2626;
+}
+
+/* ==========================================================================
+   MODAL ÉTAPE DE CONTRE (7-1-3)
+   ========================================================================== */
+.counter-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.counter-modal {
+  background: #0f172a;
+  border: 2px solid #38bdf8;
+  border-radius: 12px;
+  padding: 20px 30px;
+  text-align: center;
+  color: #fff;
+  max-width: 500px;
+  box-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
+}
+
+.counter-modal h3 {
+  color: #38bdf8;
+  margin-top: 0;
+}
+
+.counter-hand-grid {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 20px 0;
+  flex-wrap: wrap;
+}
+
+.counter-card-item {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.counter-card-item:hover {
+  transform: translateY(-5px) scale(1.05);
+}
+
+.counter-card-item img {
+  width: 65px;
+  height: 90px;
+  border-radius: 5px;
+  border: 1px solid #38bdf8;
+}
+
+.counter-badge-value {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ef4444;
+  color: #fff;
+  font-weight: 900;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  border: 1px solid #fff;
+}
+
+.no-counter-text {
+  color: #94a3b8;
+  font-style: italic;
+  margin: 20px 0;
+}
+
+.btn-resolve-combat {
+  background: #22c55e;
+  color: #000;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-resolve-combat:hover {
+  background: #16a34a;
 }
 </style>

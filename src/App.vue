@@ -393,6 +393,9 @@ html, body {
     padding-top: env(safe-area-inset-top);
     height: calc(60px + env(safe-area-inset-top));
     gap: 8px;
+    /* Le backdrop-filter crée un conteneur pour les éléments fixed enfants. */
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   .brand-logo { height: 32px; }

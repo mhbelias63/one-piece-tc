@@ -386,8 +386,8 @@ html, body {
 .app-layout.light-theme .nav-item { color: #64748b; }
 .app-layout.light-theme .user-badge, .app-layout.light-theme .currency-badge { background: #f8fafc; border-color: #cbd5e1; }
 
-/* ADAPTATIONS MOBILES (< 768px) */
-@media (max-width: 768px) {
+/* ADAPTATIONS MOBILES (< 900px) */
+@media screen and (max-width: 900px) {
   .topbar {
     padding: 0 12px;
     padding-top: env(safe-area-inset-top);
@@ -399,10 +399,10 @@ html, body {
 
   /* Sur mobile, le menu repasse en bas */
   .nav-links-top {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
     height: calc(60px + env(safe-area-inset-bottom));
     background: rgba(13, 17, 23, 0.98);
     backdrop-filter: blur(20px);
@@ -410,6 +410,7 @@ html, body {
     justify-content: space-around;
     padding: 0 4px env(safe-area-inset-bottom);
     z-index: 1000;
+    display: flex !important;
   }
 
   .nav-item {

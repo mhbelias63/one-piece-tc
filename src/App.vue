@@ -403,12 +403,12 @@ html, body {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 60px;
+    height: calc(60px + env(safe-area-inset-bottom));
     background: rgba(13, 17, 23, 0.98);
     backdrop-filter: blur(20px);
     border-top: 1px solid rgba(255, 255, 255, 0.12);
     justify-content: space-around;
-    padding: 0 4px;
+    padding: 0 4px env(safe-area-inset-bottom);
     z-index: 1000;
   }
 
@@ -426,7 +426,8 @@ html, body {
 
   .content-body {
     padding: 12px;
-    padding-bottom: 70px;
+    /* Empêche le contenu d'être masqué par la navigation fixe. */
+    padding-bottom: calc(70px + env(safe-area-inset-bottom));
   }
 
   .user-badge { padding: 4px 6px; gap: 4px; }

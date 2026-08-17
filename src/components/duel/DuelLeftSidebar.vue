@@ -5,7 +5,7 @@
       @click="$emit('update:collapsed', !collapsed)"
       :title="collapsed ? 'Afficher le panneau gauche' : 'Masquer le panneau gauche'"
     >
-      {{ collapsed ? '❯' : '❮' }}
+      <i class="pi" :class="collapsed ? 'pi-angle-right' : 'pi-angle-left'"></i>
     </button>
 
     <div class="sidebar-inner" v-show="!collapsed">
@@ -22,10 +22,17 @@
       <div class="logs-container">
         <div class="logs-header">Historique du Duel</div>
         <div class="logs-content">
-          <div class="log-entry system">Début de la partie</div>
-          <div class="log-entry p1">P1 a pioché 5 cartes</div>
-          <div class="log-entry p2">P2 a pioché 5 cartes</div>
-          <div class="log-entry system">Phase de Mulligan</div>
+          <div v-if="duel?.isChoiceActive" class="log-entry pending">Choix d'effet en attente</div>
+          <div v-if="duel?.isTargetingActive" class="log-entry pending">Sélection de cible en attente</div>
+          <div v-if="!duel?.combatLog?.length" class="log-entry system">Début de la partie</div>
+          <div
+            v-for="(entry, index) in duel?.combatLog || []"
+            :key="`${index}-${entry}`"
+            class="log-entry"
+            :class="getLogClass(entry)"
+          >
+            {{ entry }}
+          </div>
         </div>
       </div>
 
@@ -48,12 +55,31 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 
-defineProps({
-  collapsed: Boolean
+const props = defineProps({
+  collapsed: Boolean,
+  duel: {
+    type: Object,
+    required: true
+  }
 })
 defineEmits(['update:collapsed'])
+
+const isFullscreen = ref(false)
+
+function syncFullscreenState() {
+  isFullscreen.value = Boolean(document.fullscreenElement)
+}
+
+onMounted(() => document.addEventListener('fullscreenchange', syncFullscreenState))
+onBeforeUnmount(() => document.removeEventListener('fullscreenchange', syncFullscreenState))
+
+function handleConcede() {
+  if (props.duel?.isGameEnded) return
+  if (!window.confirm('Concéder la partie ?')) return
+  props.duel.concede()
+}
 
 function toggleFullscreen() {
   if (!document.fullscreenElement) {
@@ -65,6 +91,13 @@ function toggleFullscreen() {
       document.exitFullscreen()
     }
   }
+}
+
+function getLogClass(entry) {
+  if (entry.includes('⚠️')) return 'warning'
+  if (entry.includes('[Effet]') || entry.includes('[ActV3]')) return 'effect'
+  if (entry.includes('Combat') || entry.includes('K.O.')) return 'combat'
+  return 'system'
 }
 </script>
 
@@ -95,7 +128,7 @@ function toggleFullscreen() {
   background: #1e293b;
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #f59e0b;
-  font-size: 0.8rem;
+  font-size: 1rem;
   font-weight: 900;
   cursor: pointer;
   z-index: 20;
@@ -131,6 +164,9 @@ function toggleFullscreen() {
 }
 
 .logs-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   background: rgba(255, 255, 255, 0.05);
   padding: 10px 12px;
   font-size: 0.8rem;
@@ -155,10 +191,24 @@ function toggleFullscreen() {
 .log-entry.system { color: #f59e0b; font-style: italic; }
 .log-entry.p1 { color: #3b82f6; }
 .log-entry.p2 { color: #ef4444; }
+.log-entry.effect { color: #a7f3d0; }
+.log-entry.combat { color: #fca5a5; }
+.log-entry.warning { color: #fde68a; }
+.log-entry.pending {
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  border-radius: 6px;
+  padding: 6px;
+  background: rgba(120, 53, 15, 0.35);
+}
 
 .bottom-tools { display: flex; flex-direction: column; gap: 10px; margin-top: auto; }
 
 .surrender-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
   padding: 12px;
   background: rgba(239, 68, 68, 0.15);
@@ -170,17 +220,27 @@ function toggleFullscreen() {
   cursor: pointer;
   transition: background 0.2s ease;
 }
-.surrender-btn:hover { background: rgba(239, 68, 68, 0.3); }
+.surrender-btn:hover:not(:disabled) { background: rgba(239, 68, 68, 0.3); }
+.surrender-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: rgba(148, 163, 184, 0.4);
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.1);
+}
 
 .icon-tools { display: flex; gap: 8px; }
 .icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 1;
   height: 40px;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
   color: #fff;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   cursor: pointer;
   transition: background 0.2s ease;
 }

@@ -22,7 +22,7 @@ function cleanCardName(rawName) {
 
   const blacklist = [
     'parallel', 'manga', 'reprint', 'full art', 'full-art', 'fullart',
-    'box topper', 'boxtopper', 'sp', 'sps', 'alternate art', 'dash pack', 'spr'
+    'box topper', 'boxtopper', 'sp', 'sps', 'alternate art', 'spr'
   ]
 
   blacklist.forEach(word => {
@@ -44,6 +44,10 @@ function cleanCardEffect(rawEffect) {
   return rawEffect.replace(/Disclaimer:?.*/is, '').trim() || null
 }
 
+function firstValue(...values) {
+  return values.find(value => value !== undefined && value !== null && String(value).trim() !== '') || null
+}
+
 // Détection Manga
 function checkIsManga(itemUrl, itemName) {
   const url = (itemUrl || '').toLowerCase()
@@ -63,11 +67,27 @@ function checkIsSp(itemUrl, itemName) {
   )
 }
 
+// Détection Alt Art
+function isAltCard(item) {
+  const searchText = [
+    item?.url || '',
+    item?.name || '',
+    item?.card_number || '',
+    item?.code || '',
+    item?.id || '',
+    ...(Array.isArray(item?.codes) ? item.codes : [])
+  ].join(' ')
+
+  if (/\/ALTS?\//i.test(searchText)) return true
+  if (/(?:^|[_\s-])ALT(?:[_\s-]\d+)?/i.test(searchText)) return true
+  if (/\b(?:alternate art|alt art|alt)\b/i.test(item?.name || '')) return true
+  return false
+}
+
 // 1. Dictionnaire global de toutes les cartes (Boosters + Starter Decks)
 async function fetchAllOfficialCards() {
   console.log(`🌐 [1/3] Chargement des bases optcgapi.com (Set + ST)...`)
   try {
-    // On appelle les deux endpoints en parallèle
     const [resSet, resST] = await Promise.all([
       fetch('https://optcgapi.com/api/allSetCards/'),
       fetch('https://www.optcgapi.com/api/allSTCards/')
@@ -85,7 +105,6 @@ async function fetchAllOfficialCards() {
     const cardsMap = new Map()
     allCards.forEach(card => {
       let rawCode = card.card_set_id || card.card_number || card.id || ''
-      // Normalisation des codes OP et ST (ex: ST-01 -> ST01)
       const cleanCode = rawCode
         .replace(/^OP-?0*(\d+)/i, (m, p1) => `OP${p1.padStart(2, '0')}`)
         .replace(/^ST-?0*(\d+)/i, (m, p1) => `ST${p1.padStart(2, '0')}`)
@@ -137,98 +156,111 @@ async function fetchProxyCardsImages(folderPath) {
 
 // 3. Reconstitution et envoi vers Supabase
 async function rebuildSet(setCode, folderPath) {
-    console.log(`🚀 DEMARRAGE DE L'IMPORTATION POUR ${setCode}`)
+  console.log(`🚀 DEMARRAGE DE L'IMPORTATION POUR ${setCode}`)
 
-    const globalDataMap = await fetchAllOfficialCards()
-    if (!globalDataMap) return
+  const globalDataMap = await fetchAllOfficialCards()
+  if (!globalDataMap) return
 
-    const proxyItems = await fetchProxyCardsImages(folderPath)
-    if (proxyItems.length === 0) return
+  const proxyItems = await fetchProxyCardsImages(folderPath)
+  if (proxyItems.length === 0) return
 
-    const altCounters = {}
-    const usedIds = new Set()
-    const finalPayload = []
+  const altCounters = {}
+  const usedIds = new Set()
+  const finalPayload = []
 
-    for (const item of proxyItems) {
-        const baseCode = item.codes?.[0] || `CARD`
+  for (const item of proxyItems) {
+    const baseCode = item.codes?.[0] || `CARD`
 
-        let official = globalDataMap.get(baseCode)
-        if (!official) {
-            const normalized = baseCode.replace('-', '').toUpperCase()
-            for (const [k, v] of globalDataMap.entries()) {
-                if (k.replace('-', '').toUpperCase() === normalized) {
-                    official = v
-                    break
-                }
-            }
+    let official = globalDataMap.get(baseCode)
+    if (!official) {
+      const normalized = baseCode.replace('-', '').toUpperCase()
+      for (const [k, v] of globalDataMap.entries()) {
+        if (k.replace('-', '').toUpperCase() === normalized) {
+          official = v
+          break
         }
-
-        if (!official) {
-            official = {
-                card_name: item.name || baseCode,
-                rarity: 'C',
-                card_type: 'CHARACTER'
-            }
-        }
-
-        let formattedBaseId = baseCode
-        if (!baseCode.startsWith(setCode)) {
-            formattedBaseId = `${setCode}_${baseCode}`
-        }
-
-        const isAlt = item.url.includes('/ALTS/') || item.name.includes('(') || item.name.includes('_')
-        let cardId = formattedBaseId
-
-        if (isAlt || usedIds.has(cardId)) {
-            altCounters[baseCode] = (altCounters[baseCode] || 0) + 1
-            cardId = `${formattedBaseId}_ALT_${altCounters[baseCode]}`
-        }
-
-        while (usedIds.has(cardId)) {
-            altCounters[baseCode] = (altCounters[baseCode] || 0) + 1
-            cardId = `${formattedBaseId}_ALT_${altCounters[baseCode]}`
-        }
-
-        usedIds.add(cardId)
-
-        const rawName = official.card_name || official.name || baseCode
-        const cleanName = cleanCardName(rawName)
-        const rawEffect = official.card_text || official.effect || null
-
-        const isManga = checkIsManga(item.url, item.name)
-        const isSp = checkIsSp(item.url, item.name)
-
-        finalPayload.push({
-            id: cardId,
-            name: cleanName,
-            set_id: setCode,
-            rarity: official.rarity || 'C',
-            type: official.card_type || null,
-            color: official.card_color || null,
-            power: official.card_power && official.card_power !== 'NULL' ? parseInt(official.card_power) : null,
-            cost: official.card_cost && official.card_cost !== 'NULL' ? parseInt(official.card_cost) : null,
-            life: official.life && official.life !== 'NULL' ? parseInt(official.life) : null,
-            counter: official.counter_amount ? parseInt(official.counter_amount) : null,
-            attribute: official.attribute || null,
-            effect: cleanCardEffect(rawEffect),
-            image_url: item.url,
-            is_manga: isManga,
-            is_sp: isSp
-        })
+      }
     }
 
-    console.log(`🧹 Purge des anciennes données du set ${setCode} dans Supabase...`)
-    await supabase.from('cards').delete().eq('set_id', setCode)
-
-    console.log(`💾 [3/3] Insertion de ${finalPayload.length} cartes dans Supabase pour ${setCode}...`)
-    const { error } = await supabase.from('cards').insert(finalPayload)
-
-    if (error) {
-        console.error(`❌ Erreur Supabase :`, error.message)
-    } else {
-        console.log(`🎉 SUCCÈS ! ${finalPayload.length} cartes importées proprement pour ${setCode} !`)
+    if (!official) {
+      official = {
+        card_name: item.name || baseCode,
+        rarity: 'C',
+        card_type: 'CHARACTER'
+      }
     }
+
+    let formattedBaseId = baseCode
+    if (!baseCode.startsWith(setCode)) {
+      formattedBaseId = `${setCode}_${baseCode}`
+    }
+
+    // --- LOGIQUE CORRIGÉE DES ALT ARTS ---
+    const isAlt = isAltCard(item)
+    let cardId = formattedBaseId
+
+    if (isAlt) {
+      altCounters[baseCode] = (altCounters[baseCode] || 0) + 1
+      cardId = `${formattedBaseId}_ALT_${altCounters[baseCode]}`
+    }
+
+    if (usedIds.has(cardId)) continue
+    usedIds.add(cardId)
+    // -------------------------------------
+
+    const rawName = official.card_name || official.name || baseCode
+    const cleanName = cleanCardName(rawName)
+    const rawEffect = official.card_text || official.effect || null
+
+    const isManga = checkIsManga(item.url, item.name)
+    const isSp = checkIsSp(item.url, item.name)
+
+    finalPayload.push({
+      id: cardId,
+      name: cleanName,
+      set_id: setCode,
+      rarity: official.rarity || 'C',
+      type: official.card_type || null,
+      color: official.card_color || null,
+      power: official.card_power && official.card_power !== 'NULL' ? parseInt(official.card_power) : null,
+      cost: official.card_cost && official.card_cost !== 'NULL' ? parseInt(official.card_cost) : null,
+      life: official.life && official.life !== 'NULL' ? parseInt(official.life) : null,
+      counter: official.counter_amount ? parseInt(official.counter_amount) : null,
+      attribute: official.attribute || null,
+      sub_types: firstValue(
+        official.sub_types,
+        official.subtype,
+        official.card_subtypes,
+        official.card_sub_types,
+        official.traits,
+        official.card_traits
+      ),
+      category: firstValue(official.category, official.card_category, official.cardCategory),
+      effect: cleanCardEffect(rawEffect),
+      image_url: item.url,
+      is_manga: isManga,
+      is_sp: isSp
+    })
+  }
+
+  console.log(`🧹 Purge des anciennes données du set ${setCode} dans Supabase...`)
+  await supabase.from('cards').delete().eq('set_id', setCode)
+
+  console.log(`💾 [3/3] Insertion de ${finalPayload.length} cartes dans Supabase pour ${setCode}...`)
+  const { error } = await supabase.from('cards').insert(finalPayload)
+
+  if (error) {
+    console.error(`❌ Erreur Supabase :`, error.message)
+  } else {
+    console.log(`🎉 SUCCÈS ! ${finalPayload.length} cartes importées proprement pour ${setCode} !`)
+    const missingTraits = finalPayload.filter(card => {
+      return String(card.type || '').toLowerCase() === 'character' && !card.sub_types
+    })
+    if (missingTraits.length > 0) {
+      console.warn(`⚠️ ${missingTraits.length} personnages sans traits: ${missingTraits.map(card => card.id).join(', ')}`)
+    }
+  }
 }
 
-// Exemple pour importer le Starter Deck ST01
-rebuildSet('ST01', 'OnePiece/MorpiceRamadan/ST01')
+// Exemple pour lancer l'importation d'un set
+rebuildSet('ST04', 'OnePiece/MorpiceRamadan/ST04')

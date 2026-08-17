@@ -7,6 +7,7 @@ import CardsView from '../views/CardsView.vue'
 import BoosterView from '../views/BoosterView.vue'
 import DeckView from '../views/DeckView.vue'
 import DuelInitializer from '../components/DuelInitializer.vue'
+import LobbyView from '../views/LobbyView.vue'
 
 const routes = [
   {
@@ -46,6 +47,14 @@ const routes = [
     path: '/deck',
     redirect: '/decks'
   },
+
+  {
+    path: '/lobby',
+    name: 'lobby',
+    component: () => import('../views/LobbyView.vue'),
+    meta: { requiresAuth: true }
+  },
+
   {
     path: '/duel',
     name: 'Duel',

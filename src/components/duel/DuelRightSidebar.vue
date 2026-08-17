@@ -5,7 +5,7 @@
       @click="$emit('update:collapsed', !collapsed)"
       :title="collapsed ? 'Afficher le panneau droit' : 'Masquer le panneau droit'"
     >
-      {{ collapsed ? '❮' : '❯' }}
+      <i class="pi" :class="collapsed ? 'pi-angle-left' : 'pi-angle-right'"></i>
     </button>
 
     <div class="sidebar-inner" v-show="!collapsed">
@@ -21,14 +21,42 @@
       <!-- État du Tour -->
       <div class="turn-card">
         <span class="turn-title">Tour {{ duel.turnCount }}</span>
-        <span class="phase-pill">{{ currentPhaseName }}</span>
+        <span class="phase-pill">
+          <i class="pi" :class="phaseIcon"></i>
+          {{ currentPhaseName }}
+        </span>
+        <span class="turn-owner" :class="isMyTurn ? 'is-mine' : 'is-theirs'">
+          <i class="pi" :class="isMyTurn ? 'pi-user' : 'pi-android'"></i>
+          {{ turnOwnerLabel }}
+        </span>
       </div>
 
-      <!-- Annuler / Rétablir -->
-      <div class="history-card">
-        <button class="hist-btn">◄ Annuler</button>
-        <span class="hist-counter">2 / 2</span>
-        <button class="hist-btn">Rétablir ►</button>
+      <!-- Ressources en un coup d'œil -->
+      <div class="stats-card">
+        <div class="stat-row">
+          <span class="stat-label"><i class="pi pi-heart-fill"></i> Vie</span>
+          <span class="stat-values">
+            <b class="mine">{{ duel.playerLifeRemaining }}</b>
+            <span class="sep">/</span>
+            <b class="theirs">{{ duel.opponentLifeRemaining }}</b>
+          </span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label"><i class="pi pi-bolt"></i> DON!! actifs</span>
+          <span class="stat-values">
+            <b class="mine">{{ duel.playerActiveDon }}</b>
+            <span class="sep">/</span>
+            <b class="theirs">{{ duel.opponentActiveDon }}</b>
+          </span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label"><i class="pi pi-inbox"></i> Main</span>
+          <span class="stat-values">
+            <b class="mine">{{ duel.playerHand.length }}</b>
+            <span class="sep">/</span>
+            <b class="theirs">{{ duel.opponentHand.length }}</b>
+          </span>
+        </div>
       </div>
 
       <div class="spacer"></div>
@@ -36,16 +64,31 @@
       <!-- Panneau d'Actions Dynamique -->
       <div class="action-panel">
         <div class="action-header">Vos Actions</div>
-        
+
+        <p v-if="blockedReason" class="action-hint">
+          <i class="pi pi-info-circle"></i>
+          {{ blockedReason }}
+        </p>
+
         <div class="action-group">
-          <!-- BOUTON PASSER LA PHASE -->
-          <button @click="handleNextPhase" class="action-btn next-phase-btn">
-            Passer la phase ({{ currentPhaseName }}) ➔
+          <button
+            @click="handleNextPhase"
+            class="action-btn next-phase-btn"
+            :disabled="Boolean(blockedReason)"
+            :title="blockedReason || `Passer la phase ${currentPhaseName}`"
+          >
+            <i class="pi pi-forward"></i>
+            <span>Passer la phase</span>
           </button>
 
-          <!-- BOUTON FIN DE TOUR -->
-          <button @click="handleEndTurn" class="action-btn end-turn-btn">
-            Fin du tour
+          <button
+            @click="handleEndTurn"
+            class="action-btn end-turn-btn"
+            :disabled="Boolean(blockedReason)"
+            :title="blockedReason || 'Terminer votre tour'"
+          >
+            <i class="pi pi-check-circle"></i>
+            <span>Fin du tour</span>
           </button>
         </div>
       </div>
@@ -72,11 +115,42 @@ const currentPhaseName = computed(() => {
   return props.duel.getPhaseDisplayName()
 })
 
+const phaseIcons = {
+  draw: 'pi-inbox',
+  main: 'pi-sparkles',
+  attack: 'pi-bolt',
+  block: 'pi-shield',
+  end: 'pi-flag'
+}
+
+const phaseIcon = computed(() => phaseIcons[props.duel?.currentPhase] || 'pi-circle')
+
+// En mode IA, le joueur humain garde toujours le même côté.
+const isMyTurn = computed(() => {
+  if (!props.duel?.isBotEnabled) return true
+  return props.duel.gameState?.currentPlayerTurnId === props.duel.botHumanPlayerId
+})
+
+const turnOwnerLabel = computed(() => (isMyTurn.value ? 'À vous de jouer' : "L'IA joue"))
+
+const blockedReason = computed(() => {
+  const duel = props.duel
+  if (!duel) return 'Duel non initialisé'
+  if (duel.isGameEnded) return 'La partie est terminée'
+  if (!isMyTurn.value) return "L'IA est en train de jouer"
+  if (duel.isInCombat) return 'Combat en cours à résoudre'
+  if (duel.isTargetingActive) return 'Choisissez une cible pour continuer'
+  if (duel.isChoiceActive) return 'Un choix d\'effet est en attente'
+  return ''
+})
+
 function handleNextPhase() {
+  if (blockedReason.value) return
   props.duel.nextPhase()
 }
 
 function handleEndTurn() {
+  if (blockedReason.value) return
   props.duel.endTurn()
 }
 </script>
@@ -108,7 +182,7 @@ function handleEndTurn() {
   background: #1e293b;
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #f59e0b;
-  font-size: 0.8rem;
+  font-size: 1rem;
   font-weight: 900;
   cursor: pointer;
   z-index: 20;
@@ -145,6 +219,9 @@ function handleEndTurn() {
 }
 .turn-title { color: #fff; font-size: 1.1rem; font-weight: 900; }
 .phase-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   background: rgba(245, 158, 11, 0.15);
   color: #f59e0b;
   border: 1px solid rgba(245, 158, 11, 0.3);
@@ -164,6 +241,42 @@ function handleEndTurn() {
   border-radius: 8px;
   padding: 8px 10px;
 }
+.turn-owner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.turn-owner.is-mine { color: #4ade80; }
+.turn-owner.is-theirs { color: #f87171; }
+
+.stats-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px;
+}
+.stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+}
+.stat-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #94a3b8;
+  font-weight: 700;
+}
+.stat-values { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; }
+.stat-values .mine { color: #60a5fa; }
+.stat-values .theirs { color: #f87171; }
+.stat-values .sep { color: #475569; }
 .hist-btn {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -174,6 +287,21 @@ function handleEndTurn() {
   cursor: pointer;
 }
 .hist-counter { color: #94a3b8; font-size: 0.8rem; font-weight: 700; }
+
+.action-hint {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 8px;
+  background: rgba(120, 53, 15, 0.3);
+  color: #fbbf24;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
 
 .spacer { flex: 1; }
 
@@ -190,6 +318,10 @@ function handleEndTurn() {
 
 .action-group { display: flex; flex-direction: column; gap: 10px; }
 .action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
   padding: 12px;
   border: none;
@@ -202,5 +334,11 @@ function handleEndTurn() {
 }
 .next-phase-btn { background: #f59e0b; color: #000; }
 .end-turn-btn { background: #dc2626; }
-.action-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+.action-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.action-btn:disabled {
+  background: rgba(148, 163, 184, 0.15);
+  color: #64748b;
+  cursor: not-allowed;
+  transform: none;
+}
 </style>

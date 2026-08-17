@@ -8,12 +8,17 @@
 
         <!-- Navigation Principale -->
         <nav class="nav">
-            <button class="nav-link" @click="goHome">Accueil</button>
+            <button class="nav-link" @click="goHome">
+                <i class="pi pi-home"></i>
+                <span>Accueil</span>
+            </button>
 
             <!-- Menu Déroulant Extensions -->
             <div class="dropdown-container" @mouseenter="setsDropdown = true" @mouseleave="setsDropdown = false">
                 <button class="nav-link">
-                    Cartes & Extensions ▾
+                    <i class="pi pi-book"></i>
+                    <span>Cartes &amp; Extensions</span>
+                    <i class="pi pi-chevron-down chevron" :class="{ 'is-open': setsDropdown }"></i>
                 </button>
 
                 <div v-if="setsDropdown" class="dropdown-menu">
@@ -24,13 +29,22 @@
             </div>
 
             <!-- Liens / Fonctionnalités -->
-            <router-link to="/gacha" class="nav-link">Boosters / Gacha</router-link>
-            <router-link to="/decks" class="nav-link">Decks</router-link>
-            <router-link to="/cards" class="nav-link">Collection</router-link>
-            
-            <!-- ⚔️ NOUTAIL : BOUTON DUEL ARENA -->
+            <router-link to="/gacha" class="nav-link">
+                <i class="pi pi-gift"></i>
+                <span>Boosters</span>
+            </router-link>
+            <router-link to="/decks" class="nav-link">
+                <i class="pi pi-clone"></i>
+                <span>Decks</span>
+            </router-link>
+            <router-link to="/cards" class="nav-link">
+                <i class="pi pi-th-large"></i>
+                <span>Collection</span>
+            </router-link>
+
             <router-link to="/duel" class="nav-link duel-link">
-                <span class="duel-badge">⚔️</span> Arena Duel
+                <i class="pi pi-bolt"></i>
+                <span>Arena Duel</span>
             </router-link>
         </nav>
 
@@ -123,35 +137,75 @@ function selectSet(setId) {
 }
 
 .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 7px;
     background: none;
     border: none;
+    border-radius: 8px;
+    padding: 7px 10px;
     color: #fff;
     font-size: 0.9rem;
+    font-family: inherit;
     cursor: pointer;
     white-space: nowrap;
     text-decoration: none;
-    transition: color 0.2s;
+    transition: color 0.2s, background-color 0.2s;
+}
+
+.nav-link .pi {
+    font-size: 0.95rem;
+    opacity: 0.75;
+    transition: opacity 0.2s;
 }
 
 .nav-link:hover {
     color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.nav-link:hover .pi {
+    opacity: 1;
+}
+
+/* Onglet actif du router */
+.nav-link.router-link-active {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.12);
+}
+
+.chevron {
+    font-size: 0.7rem !important;
+    transition: transform 0.2s ease;
+}
+
+.chevron.is-open {
+    transform: rotate(180deg);
 }
 
 /* Style spécial pour le bouton DUEL */
 .duel-link {
     background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(245, 158, 11, 0.2));
     border: 1px solid #ef4444;
-    padding: 4px 12px;
+    padding: 6px 14px;
     border-radius: 20px;
     font-weight: 800;
     color: #fca5a5;
-    display: flex;
-    align-items: center;
-    gap: 6px;
 }
 
-.duel-link:hover {
+.duel-link .pi {
+    opacity: 1;
+    color: #fbbf24;
+}
+
+.duel-link:hover,
+.duel-link.router-link-active {
     background: #ef4444;
+    color: #ffffff;
+}
+
+.duel-link:hover .pi,
+.duel-link.router-link-active .pi {
     color: #ffffff;
 }
 

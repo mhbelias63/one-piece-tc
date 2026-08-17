@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useDuelStore } from '../stores/duelStore'
 
 export function useCombatManager() {
@@ -9,10 +9,74 @@ export function useCombatManager() {
   const availableBlockers = ref([])
 
   const isCounterPhase = ref(false) // Fenêtre de contre active
+  const combatInteractionPending = ref(false)
+  const combatWindow = ref('idle')
+
+  function advanceCombatWindow() {
+    if (!duel.engine?.gameState?.isInCombat) return
+    if (duel.isTargetingActive || duel.isChoiceActive) {
+      combatInteractionPending.value = true
+      return
+    }
+
+    combatInteractionPending.value = false
+    if (combatWindow.value === 'counter-effect') {
+      combatWindow.value = 'counter'
+      isCounterPhase.value = true
+      return
+    }
+
+    combatWindow.value = 'blocking'
+    const defender = duel.engine.findCard(duel.engine.gameState.defenderId)
+    const defenderOwner = defender && duel.engine.findCardOwner(defender)
+    const blockers = defenderOwner?.zones?.deploy?.filter(c => {
+      const hasBlockerKeyword = c.keywords instanceof Set
+        ? c.keywords.has('blocker')
+        : c.keywords?.includes?.('blocker')
+      return c.state === 'active' && (c.isBlocker || hasBlockerKeyword)
+    }) || []
+
+    if (blockers.length > 0) {
+      availableBlockers.value = blockers
+      isBlockingPhase.value = true
+    } else {
+      combatWindow.value = 'counter'
+      isCounterPhase.value = true
+    }
+  }
+
+  watch(
+    [() => duel.isTargetingActive, () => duel.isChoiceActive],
+    ([targetingActive, choiceActive], [wasTargetingActive, wasChoiceActive]) => {
+      if ((wasTargetingActive || wasChoiceActive) && !targetingActive && !choiceActive) {
+        advanceCombatWindow()
+      }
+    }
+  )
+
+  watch(() => duel.isInCombat, (inCombat, wasInCombat) => {
+    if (inCombat && !wasInCombat) {
+      advanceCombatWindow()
+    }
+    if (!inCombat && wasInCombat) {
+      isBlockingPhase.value = false
+      isCounterPhase.value = false
+      availableBlockers.value = []
+      combatWindow.value = 'idle'
+    }
+  })
 
   function handleCardClick(card, isOpponent = false) {
     if (!card) return { action: 'none' }
     if (duel.currentPhase !== 'attack' && duel.currentPhase !== 'main') return { action: 'inspect', card }
+
+    if (!isOpponent && duel.currentPhase === 'main') {
+      const hasMainEffect = card.effects?.some(effect => effect.proc === 'main')
+      if (hasMainEffect && card.state === 'active') {
+        const activated = duel.activateMainEffect(card.uniqueInstanceId || card.id)
+        if (activated) return { action: 'main_effect', card }
+      }
+    }
 
     // Sélection attaquant
     if (!isOpponent) {
@@ -33,18 +97,7 @@ export function useCombatManager() {
 
       if (attackDeclared) {
         selectedAttacker.value = null
-        const defenderOwner = duel.engine.findCardOwner(card)
-        const blockers = defenderOwner.zones['deploy'].filter(c => 
-          c.state === 'active' && (c.isBlocker || c.keywords?.includes('blocker'))
-        )
-
-        if (blockers.length > 0) {
-          availableBlockers.value = blockers
-          isBlockingPhase.value = true
-        } else {
-          // Si pas de bloqueur, on passe directement à la phase de Contre
-          isCounterPhase.value = true
-        }
+        combatWindow.value = 'attack-effect'
       }
     }
     return { action: 'inspect', card }
@@ -52,6 +105,7 @@ export function useCombatManager() {
 
   function selectBlocker(blockerCard) {
     duel.engine.declareBlocker(blockerCard.uniqueInstanceId)
+    combatWindow.value = 'counter'
     isBlockingPhase.value = false
     availableBlockers.value = []
     
@@ -60,6 +114,7 @@ export function useCombatManager() {
   }
 
   function passBlock() {
+    combatWindow.value = 'counter'
     isBlockingPhase.value = false
     availableBlockers.value = []
     
@@ -68,13 +123,18 @@ export function useCombatManager() {
   }
 
   function useCounterCard(card) {
-    duel.engine.applyCounterFromHand(card.uniqueInstanceId)
+    combatWindow.value = 'counter-effect'
+    if (card.counterPower > 0) duel.engine.applyCounterFromHand(card.uniqueInstanceId)
+    else duel.engine.activateCounterFromHand(card.uniqueInstanceId)
   }
 
   function resolveCombatWithCounter() {
+    if (duel.isTargetingActive || duel.isChoiceActive) return false
     isCounterPhase.value = false
+    combatWindow.value = 'idle'
     duel.resolveCombat()
     duel.engine.clearCombatTempModifiers() // Réinitialise les bonus temporaires à la fin du combat (7-1-5)
+    return true
   }
 
   return {

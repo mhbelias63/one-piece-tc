@@ -1,0 +1,502 @@
+[
+  {
+    "code": "OP02-005",
+    "name": "Curly. Dadan (Pirate Foil)",
+    "effect": "[On Play] Look at up to 5 cards from the top of your deck; reveal up to 1 red Character with a cost of 1 and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  },
+  {
+    "code": "OP02-009",
+    "name": "Squard",
+    "effect": "[On Play] If your Leader's type includes \"Whitebeard Pirates\", give up to 1 of your opponent's Characters -4000 power during this turn and add 1 card from the top of your Life cards to your hand."
+  },
+  {
+    "code": "OP01-099",
+    "name": "Kurozumi Semimaru",
+    "effect": "Kurozumi Clan type Characters other than your [Kurozumi Semimaru] cannot be K.O.'d in battle."
+  },
+  {
+    "code": "OP03-090",
+    "name": "Blueno",
+    "effect": "[DON!! x1] [This Character gains [Blocker]. (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [On K.O.] Play up to 1 Character card with a type including \"CP\" and a cost of 4 or less from your trash rested."
+  },
+  {
+    "code": "OP03-083",
+    "name": "Corgy",
+    "effect": "[On Play] Look at 5 cards from the top of your deck and trash up to 2 cards. Then, place the rest at the bottom of your deck in any order."
+  },
+  {
+    "code": "OP03-086",
+    "name": "Spandam",
+    "effect": "[On Play] If your Leader's type include \"CP\", look at 3 cards from the top of your deck; reveal up to 1 card with a type including \"CP\" other than [Spandam] and add it to your hand. Then, trash the rest."
+  },
+  {
+    "code": "OP03-089",
+    "name": "Brannew",
+    "effect": "[On Play] Look at 3 cards from the top of your deck; reveal up to 1 [Navy] type card other than [Brannew] and add it to your hand. Then, trash the rest."
+  },
+  {
+    "code": "OP03-091",
+    "name": "Helmeppo",
+    "effect": "[On Play] Set the cost of up to 1 of your opponent's Characters with no base effect to 0 during this turn."
+  },
+  {
+    "code": "OP02-018",
+    "name": "Marco",
+    "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[On K.O.] You may trash 1 card with a type including \"Whitebeard Pirates\" from your hand: If you have 2 or less Life cards, play this Character card from your trash rested."
+  },
+  {
+    "code": "OP02-021",
+    "name": "Seaquake",
+    "effect": "[Main] If your Leader's type includes \"Whitebeard Pirates\", K.O. up to 1 of your opponent's Characters with 3000 power or less. [Trigger] Give up to 1 of your opponent's Leader or Character cards -3000 power during this turn."
+  },
+  {
+    "code": "OP02-019",
+    "name": "Rakuyo",
+    "effect": "[DON!! x1] [Your Turn] All of your Characters with a type including \"Whitebeard Pirates\" gain +1000 power."
+  },
+  {
+    "code": "OP11-001",
+    "name": "Koby",
+    "effect": "Your \"SWORD\" type Characters can attack Characters on the turn in which they are played.\n[Once Per Turn] If your \"Navy\" type Character with 7000 base power or less would be removed from the field by your opponent's effect, you may place 3 cards from your trash at the bottom of your deck in any order instead."
+  },
+  {
+    "code": "OP11-005",
+    "name": "Smoker",
+    "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[DON!! x1] This Character cannot be K.O.'d by effects of Characters without the (Special) attribute."
+  },
+  {
+    "code": "OP03-096",
+    "name": "Tempest Kick Sky Slicer",
+    "effect": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 0 or your opponent's Stages with a cost of 3 or less. [Trigger] Draw 2 cards."
+  },
+  {
+    "code": "OP11-004",
+    "name": "Kujyaku",
+    "effect": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Navy\" type card other than \"Kujyaku\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.[Activate: Main] You may trash this Character: Up to 1 of your Characters gains +1000 power during this turn."
+  },
+  {
+    "code": "OP03-098",
+    "name": "Enies Lobby",
+    "effect": "[Activate:Main] You may rest this Stage: If your Leader's type includes \"CP\", give up to 1 of your opponent's Characters -2 cost during this turn. [Trigger] Play this card."
+  },
+  {
+    "code": "OP02-022",
+    "name": "Whitebeard Pirates",
+    "effect": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 Character card with a type including \"Whitebeard Pirates\" and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] Activate this card's [Main] effect."
+  },
+  {
+    "code": "OP02-025",
+    "name": "Kin'emon",
+    "effect": "[Activate:Main] [Once Per Turn] If you have 1 or less Characters, the next time you play a [Land of Wano] type Character card with a cost of 3 or more from your hand during this turn, the cost will be reduced by 1."
+  },
+  {
+    "code": "OP02-036",
+    "name": "Nami",
+    "effect": "[On Play]/[When Attacking] (1) (You may rest the specified number of DON!! cards in your cost area.): Look at 3 cards from the top of your deck; reveal up to 1 \"FILM\" type card other than [Nami] and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  },
+  {
+    "code": "OP02-037",
+    "name": "Nico Robin",
+    "effect": "[On Play] Play up to 1 [FILM] or [Straw Hat Crew] type Character card with a cost of 2 or less from your hand."
+  },
+  {
+    "code": "OP02-040",
+    "name": "Brook",
+    "effect": "[On Play] Play up to 1 [FILM] or [Straw Hat Crew] type Character card with a cost of 3 or less from your hand."
+  },
+  {
+    "code": "OP02-041",
+    "name": "Monkey. D. Luffy",
+    "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [On Play] Play up to 1 \"FILM\" or \"Straw Hat Crew\" type Character card with a cost of 4 or less from your hand."
+  },
+  {
+    "code": "OP02-048",
+    "name": "Land of Wano",
+    "effect": "[Activate:Main] You may trash 1 [Land of Wano] type card from your hand and rest this Stage: Set up to 1 of your DON!! cards as active."
+  },
+  {
+    "code": "OP02-051",
+    "name": "Emporio. Ivankov",
+    "effect": "[On Play] Draw card(s) so that you have 3 cards in your hand and then play up to 1 blue [Impel Down] type Character card with a cost of 6 or less from your hand."
+  },
+  {
+    "code": "OP02-045",
+    "name": "Three Sword Style Oni Giri",
+    "effect": "[Counter] Up to 1 of your Leader or Character cards gains +6000 power during this battle. Then, play up to 1 Character card with a cost of 3 or less and no base effect from your hand. [Trigger] Rest up to 1 of your opponent's Leader or Character cards with a cost of 5 or less."
+  },
+  {
+    "code": "OP02-046",
+    "name": "Diable Jambe Venaison Shoot",
+    "effect": "[Main] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less. [Trigger] Play up to 1 Character card with a cost of 4 or less and no base effect from your hand."
+  },
+  {
+    "code": "OP04-001",
+    "name": "Nefeltari Vivi",
+    "effect": "This Leader cannot attack. [Activate:Main] [Once Per Turn] (2) (You may rest the specified number of DON!! cards in your cost area.): Draw 1 card and up to 1 of your Characters gains [Rush] during this turn. (This card can attack on the turn in which it is played.)"
+  },
+  {
+    "code": "OP02-056",
+    "name": "Donquixote Doflamingo",
+    "effect": "[On Play] Look at 3 cards from the top of your deck and place them at the top or bottom of the deck in any order. [DON!! x1] [When Attacking] You may trash 1 card from your hand: Place up to 1 of your opponent's Characters with a cost of 1 or less at the bottom of the owner's deck."
+  },
+  {
+    "code": "OP02-057",
+    "name": "Bartholomew Kuma",
+    "effect": "[On Play] Look at 2 cards from the top of your deck; reveal up to 1 [The Seven Warlords of the Sea] type card and add it to your hand. Then, place the rest at the top or bottom of the deck in any order."
+  },
+  {
+    "code": "OP02-058",
+    "name": "Buggy",
+    "effect": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 blue [Impel Down] type card other than [Buggy] and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  },
+  {
+    "code": "OP02-061",
+    "name": "Morley",
+    "effect": "[When Attacking] If you have 1 or less cards in your hand, your opponent cannot activate the [Blocker] of any Character with a cost of 5 or less during this battle."
+  },
+  {
+    "code": "OP02-063",
+    "name": "Mr.1 (Daz. Bonez)",
+    "effect": "[On Play] Add up to 1 blue Event card with a cost of 1 from your trash to your hand."
+  },
+  {
+    "code": "OP02-064",
+    "name": "Mr.2.Bon. Kurei (Bentham)",
+    "effect": "[DON!! x1] [When Attacking] You may trash 1 card from your hand: Place up to 1 Character with a cost of 2 or less at the bottom of the owner's deck. Then, at the end of this battle, place this Character at the bottom of the owner's deck."
+  },
+  {
+    "code": "OP02-074",
+    "name": "Saldeath",
+    "effect": "Your [Blugori] gains [Blocker]. (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)"
+  },
+  {
+    "code": "OP04-002",
+    "name": "Igaram",
+    "effect": "[Activate:Main] You may rest this Character and give your 1 active Leader -5000 power during this turn: Look at 5 cards from the top of your deck; reveal up to 1 [Alabasta] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  },
+  {
+    "code": "OP02-083",
+    "name": "Hannyabal",
+    "effect": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 purple [Impel Down] type card other than [Hannyabal] and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  },
+  {
+    "code": "OP02-066",
+    "name": "Impel Down All Stars",
+    "effect": "[Main] You may trash 2 cards from your hand: If your Leader has the [Impel Down] type, draw up to 2 cards. [Trigger] Draw 2 cards."
+  },
+  {
+    "code": "OP02-069",
+    "name": "DEATH WINK",
+    "effect": "[Counter] Up to 1 of your Leader or Character cards gains +6000 power during this battle. Then, draw cards so that you have 2 cards in your hand. [Trigger] Return up to 1 Character with a cost of 7 or less to the owner's hand."
+  },
+  {
+    "code": "OP02-070",
+    "name": "New Kama Land",
+    "effect": "[Activate:Main] You may rest this Stage: If your Leader is [Emporio.Ivankov], draw 1 card and trash 1 card from your hand. Then, trash up to 3 cards from your hand."
+  },
+  {
+    "code": "OP02-085",
+    "name": "Magellan",
+    "effect": "[On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Your opponent returns 1 DON!! card from their field to their DON!! deck. [Opponent's Turn] When this Character is K.O.'d, your opponent returns 2 DON!! cards from their field to their DON!! deck."
+  },
+  {
+    "code": "OP02-089",
+    "name": "Judgment of Hell",
+    "effect": "[Counter] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Give up to a total of 2 of your opponent's Leader or Character cards -3000 power during this turn. [Trigger] If your opponent has 6 or more DON!! cards on their field, your opponent returns 1 DON!! card from their field to their DON!! deck."
+  },
+  {
+    "code": "OP02-092",
+    "name": "Impel Down",
+    "effect": "[Activate:Main] You may trash 1 card from your hand and rest this Stage: Look at 3 cards from the top of your deck; reveal up to 1 [Impel Down] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  },
+  {
+    "code": "OP02-094",
+    "name": "Isuka",
+    "effect": "[DON!! x1] [Once Per Turn] When this Character battles and K.O.'s your opponent's Character, set this Character as active."
+  },
+  {
+    "code": "OP02-093",
+    "name": "Smoker",
+    "effect": "[DON!! x1] [Activate:Main] [Once Per Turn] Give up to 1o of your opponent's Characters -1 cost during this turn. Then, if there is a Character with a cost of 0, this Leader gains +1000 power during this turn."
+  },
+  {
+    "code": "OP02-101",
+    "name": "Strawberry",
+    "effect": "[When Attacking] If there is a Character with a cost of 0, your opponent cannot activate the [Blocker] of any Character with a cost of 5 or less during this battle."
+  },
+  {
+    "code": "OP04-004",
+    "name": "Karoo",
+    "effect": "[Activate:Main] You may rest this Character: Give up to 1 rested DON!! card to each of your [Alabasta] type Characters."
+  },
+  {
+    "code": "OP04-009",
+    "name": "Super Spot-Billed Duck Troops",
+    "effect": "[When Attacking] You may give your 1 active Leader -5000 power during this turn: Return this Character to the owner's hand at the end of this turn."
+  },
+  {
+    "code": "OP04-006",
+    "name": "Koza",
+    "effect": "[When Attacking] You may give your 1 active Leader -5000 power during this turn: This Character gains +2000 power until the start of your next turn."
+  },
+  {
+    "code": "OP04-011",
+    "name": "Nami",
+    "effect": "[When Attacking] Reveal 1 card from the top of your deck. If the revealed card is a Character card with 6000 power or more, this Character gains +3000 power during this turn. Then, place the revealed card at the bottom of your deck."
+  },
+  {
+    "code": "OP04-017",
+    "name": "Happiness Punch",
+    "effect": "[Counter] Give up to 1 of your opponent's Leader or Character cards -2000 power during this turn. Then, if your Leader is active, give up to 1 of your opponent's Leader or Character cards -1000 power during this turn."
+  },
+  {
+    "code": "OP04-020",
+    "name": "Issho",
+    "effect": "[DON!! x1] [Your Turn] Give all of your opponent's Characters -1 cost. [End of Your Turn] (1) (You may rest the specified number of DON!! cards in your cost area.): Set up to 1 of your Characters with a cost of 5 or less as active."
+  },
+  {
+    "code": "OP03-123",
+    "name": "Charlotte Katakuri",
+    "effect": "[On Play] Add up to 1 Character with a cost of 8 or less to the top or bottom of the owner's Life cards face-up."
+  },
+  {
+    "code": "OP04-016",
+    "name": "Bad Manners Kick Course",
+    "effect": "[Counter] You may trash 1 card from your hand: Up to 1 of your Leader or Character cards gains +3000 power during this battle.[Trigger] Give up to 1 of your opponent's Leader or Character cards -3000 power during this turn."
+  },
+  {
+    "code": "OP07-091",
+    "name": "Monkey. D. Luffy",
+    "effect": "[When Attacking] Trash up to 1 of your opponent's Characters with a cost of 2 or less. Then, place any number of Character cards with a cost of 4 or more from your trash at the bottom of your deck in any order. This Character gains +1000 power during this turn for every 3 cards placed at the bottom of your deck."
+  },
+  {
+    "code": "OP07-090",
+    "name": "Morgans",
+    "effect": "[On Play] Your opponent trashes 1 card from their hand and reveals their hand. Then, your opponent draws 1 card."
+  },
+  {
+    "code": "OP09-095",
+    "name": "Laffitte",
+    "effect": "[Activate: Main] You may rest 1 of your DON!! cards and this Character: Look at 5 cards from the top of your deck; reveal up to 1 \"Blackbeard Pirates\" type card and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  },
+  {
+    "code": "OP04-031",
+    "name": "Donquixote Doflamingo",
+    "effect": "[On Play] Up to a total of 3 of your opponent's rested Leader and Character cards will not become active in your opponent's next Refresh Phase."
+  },
+  {
+    "code": "OP04-032",
+    "name": "Baby 5",
+    "effect": "[End of Your Turn] You may trash this Character: Set up to 2 of your DON!! cards as active."
+  },
+  {
+    "code": "OP04-036",
+    "name": "Donquixote Family",
+    "effect": "[Counter] Look at 5 cards from the top of your deck; reveal up to 1 [Donquixote Pirates] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] Activate this card's [Counter] effect."
+  },
+  {
+    "code": "OP04-030",
+    "name": "Trebol",
+    "effect": "[On Play] K.O. up to 1 of your opponent's rested Characters with a cost of 5 or less. [On Your Opponent's Attack] (2) (You may rest the specified number of DON!! cards in your cost area.): Rest up to 1 of your opponent's Characters with a cost of 4 or less."
+  },
+  {
+    "code": "OP04-033",
+    "name": "Machvise",
+    "effect": "[On Play] If your Leader has the [Donquixote Pirates] type, rest up to 1 of your opponent's Characters with a cost of 5 or less. Then, set up to 1 of your DON!! cards as active at the end of this turn."
+  },
+  {
+    "code": "OP04-038",
+    "name": "The Weak Do Not Have the Right to Choose How They Die!!!",
+    "effect": "[Main] / [Counter] Rest up to 1 of your opponent's Leader or Character cards. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less. [Trigger] Set up to 5 of your DON!! cards as active."
+  },
+  {
+    "code": "OP04-039",
+    "name": "Rebecca",
+    "effect": "This Leader cannot attack. [Activate:Main] [Once Per Turn] (1) (You may rest the specified number of DON!! cards in your cost area.): If you have 6 or less cards in your hand, look at 2 cards from the top of your deck; reveal up to 1 [Dressrosa] type card and add it to your hand. Then, trash the rest."
+  },
+  {
+    "code": "OP04-041",
+    "name": "Apis",
+    "effect": "[On Play] You may trash 2 cards from your hand: Look at 5 cards from the top of your deck; reveal up to 1 [East Blue] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  },
+  {
+    "code": "OP04-043",
+    "name": "Ulti",
+    "effect": "[DON!! x1] [When Attacking] Return up to 1 Character with a cost of 2 or less to the owner's hand or the bottom of their deck."
+  },
+  {
+    "code": "OP04-044",
+    "name": "Kaido",
+    "effect": "[On Play] Return up to 1 Character with a cost of 8 or less and up to 1 Character with a cost of 3 or less to the owner's hand."
+  },
+  {
+    "code": "OP04-046",
+    "name": "Queen",
+    "effect": "[On Play] If your Leader has the [Animal Kingdom Pirates] type, look at 7 cards from the top of your deck; reveal a total of 2 [Plague Rounds] or [Ice Oni] cards and add them to your hand. Then, place the rest at the bottom of your deck in any order."
+  },
+  {
+    "code": "OP04-047",
+    "name": "Ice Oni",
+    "effect": "[Your Turn] At the end of a battle in which this Character battles your opponent's Character with a cost of 5 or less, place the opponent's Character you battled with at the bottom of the owner's deck."
+  },
+  {
+    "code": "OP04-048",
+    "name": "Sasaki",
+    "effect": "[On Play] Return all cards in your hand to your deck and shuffle your deck. Then, draw cards equal to the number you returned to your deck."
+  },
+  {
+    "code": "OP04-051",
+    "name": "Who's. Who",
+    "effect": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Animal Kingdom Pirates] type card other than [Who's.Who] and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  },
+  {
+    "code": "OP04-040",
+    "name": "Queen",
+    "effect": "[DON!! x1] [When Attacking] If you have a total of 4 or less cards in your Life area and hand, draw 1 card. If you have a Character with a cost of 8 or more, you may add up to 1 card from the top of your deck to the top of your Life cards instead of drawing 1 card."
+  },
+  {
+    "code": "OP04-055",
+    "name": "Plague Rounds",
+    "effect": "[Main] You may trash 1 [Ice Oni] from your hand and place 1 Character with a cost of 4 or less at the bottom of the owner's deck: Play 1 [Ice Oni] from your trash. [Trigger] Activate this card's [Main] effect."
+  },
+  {
+    "code": "OP04-061",
+    "name": "Tom",
+    "effect": "[Activate:Main] You may trash this Character: If your Leader has the [Water Seven] type, add up to 1 DON!! card from your DON!! deck and rest it."
+  },
+  {
+    "code": "OP04-068",
+    "name": "Yokozuna",
+    "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [On Your Opponent's Attack] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Return up to 1 of your opponent's Characters with a cost of 2 or less to the owner's hand."
+  },
+  {
+    "code": "OP04-060",
+    "name": "Crocodile",
+    "effect": "[On Play] DON!! -2 (You may return the specified number of DON!! cards from your field to your DON!! deck.): If your Leader's type includes \"Baroque Works\", add up to 1 card from the top of your deck to the top of your Life cards. [On Your Opponent's Attack] [Once Per Turn] DON!! -1: Draw 1 card and trash 1 card from your hand."
+  },
+  {
+    "code": "OP04-065",
+    "name": "Miss. Goldenweek(Marianne)",
+    "effect": "[On Play] If your Leader's type includes \"Baroque Works\", up to 1 of your opponent's Characters with a cost of 5 or less cannot attack until the start of your next turn. [Trigger] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Play this card."
+  },
+  {
+    "code": "OP04-066",
+    "name": "Miss. Valentine(Mikita)",
+    "effect": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Baroque Works\" and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Play this card."
+  },
+  {
+    "code": "OP02-110",
+    "name": "Hina",
+    "effect": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [On Block] Select up to 1 of your opponent's Characters with a cost of 6 or less. The selected Character cannot attack during this turn."
+  },
+  {
+    "code": "OP02-121",
+    "name": "Kuzan",
+    "effect": "[Your Turn] Give all of your opponent's Characters -5 cost.[On Play] K.O. up to 1 of your opponent's Characters with a cost of 0."
+  },
+  {
+    "code": "OP02-111",
+    "name": "Fullbody",
+    "effect": "[When Attacking] If you have [Jango], this card gains +3000 power during this battle."
+  },
+  {
+    "code": "OP02-114",
+    "name": "Borsalino",
+    "effect": "[Opponent's Turn] This Character gains +1000 power and cannot be K.O.'d by effects.[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)"
+  },
+  {
+    "code": "OP02-120",
+    "name": "Uta",
+    "effect": "[On Play] DON!! -2 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Your Leader and all of your Characters gain +1000 power until the start of your next turn."
+  },
+  {
+    "code": "OP11-013",
+    "name": "Prince Grus",
+    "effect": "[When Attacking] All of your opponent's Characters with 2000 power or less cannot activate [Blocker] during this turn."
+  },
+  {
+    "code": "OP11-021",
+    "name": "Jinbe",
+    "effect": "[End of Your Turn] If you have 6 or less cards in your hand, set up to 1 of your \"Fish-Man\" or \"Merfolk\" type Characters and up to 1 of your DON!! cards as active."
+  },
+  {
+    "code": "OP11-022",
+    "name": "Shirahoshi",
+    "effect": "This Leader cannot attack.\n[Activate: Main] [Once Per Turn] You may rest 1 of your DON!! cards and turn 1 card from the top of your Life cards face-up: Play up to 1 \"Neptunian\" type Character card or \"Megalo\" with a cost equal to or less than the number of DON!! cards on your field from your hand."
+  },
+  {
+    "code": "OP09-096",
+    "name": "My Era...Begins!!",
+    "effect": "[Main] Look at 3 cards from the top of your deck; reveal up to 1 \"Blackbeard Pirates\" type card other than [My Era...Begins!!] and add it to your hand. Then, trash the rest.[Trigger] Activate this card's [Main] effect."
+  },
+  {
+    "code": "OP05-100",
+    "name": "Enel",
+    "effect": "[Rush] [Once Per Turn] If this Character would leave the field, you may trash 1 card from the top of your Life cards instead. If there is a [Monkey.D.Luffy] Character, this effect is negated."
+  },
+  {
+    "code": "OP11-012",
+    "name": "Franky",
+    "effect": "[Your Turn] [Once Per Turn] When your opponent activates an Event, all of your Characters gain +2000 power during this turn."
+  },
+  {
+    "code": "OP11-030",
+    "name": "Shirahoshi",
+    "effect": "[Activate: Main] You may rest 1 of your DON!! cards and this Character: Look at 5 cards from the top of your deck; reveal up to 1 \"Neptunian\" or \"Fish-Man Island\" type card and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  },
+  {
+    "code": "OP11-034",
+    "name": "Hatchan",
+    "effect": "[Activate: Main] You may rest this Character: If your Leader has the \"Fish-Man\" or \"Merfolk\" type, up to 1 of your opponent's Characters with a cost of 3 or less cannot be rested until the end of your opponent's next turn."
+  },
+  {
+    "code": "OP11-036",
+    "name": "Spotted Neptunian",
+    "effect": "[On Play] If your Leader is \"Shirahoshi\", look at 5 cards from the top of your deck; reveal up to 1 \"Neptunian\" type card or \"Shirahoshi\" and add it to your hand. Then, place the rest at the bottom of your deck in any order."
+  },
+  {
+    "code": "OP11-031",
+    "name": "Jinbe",
+    "effect": "[On Play] If your Leader has the \"Fish-Man\" or \"Merfolk\" type, rest up to 1 of your opponent's Characters with a cost of 5 or less.\n[Activate: Main] [Once Per Turn] Up to 1 of your \"Fish-Man\" or \"Merfolk\" type Characters can attack Characters on the turn in which it is played."
+  },
+  {
+    "code": "OP11-023",
+    "name": "Arlong",
+    "effect": "If your Leader has the \"Fish-Man\" type, you have 3 or less Life cards and your opponent has 5 or more rested cards, give this card in your hand 3 cost.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less."
+  },
+  {
+    "code": "OP11-024",
+    "name": "Aladine",
+    "effect": "When this Character is K.O.'d by your opponent's effect, you may trash 1 card from your hand and rest 1 of your DON!! cards. If you do, play up to 1 \"Fish-Man\" or \"Merfolk\" type Character card with a cost of 6 or less from your hand."
+  },
+  {
+    "code": "OP11-025",
+    "name": "Ishilly",
+    "effect": "[On Your Opponent's Attack] [Once Per Turn] You may rest 1 of your DON!! cards and this Character: Up to 1 of your Leader or Character cards gains +1000 power during this battle."
+  },
+  {
+    "code": "OP11-037",
+    "name": "Ancient Weapon Poseidon",
+    "effect": "[Main] Look at 4 cards from the top of your deck; reveal up to 1 \"Neptunian\" or \"Fish-Man Island\" type Character card and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Draw 1 card."
+  },
+  {
+    "code": "OP11-040",
+    "name": "Monkey. D. Luffy",
+    "effect": "This effect can be activated at the start of your turn. If you have 8 or more DON!! cards on your field, look at 5 cards from the top of your deck; reveal up to 1 \"Straw Hat Crew\" type card and add it to your hand. Then, place the rest at the top or bottom of the deck in any order."
+  },
+  {
+    "code": "OP11-039",
+    "name": "Vagabond Drill",
+    "effect": "[Counter] Up to 1 of your \"Fish-Man\" or \"Merfolk\" type Leader or Character cards gains +3000 power during this battle. Then, rest up to 1 of your opponent's Characters with a cost of 3 or less.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less."
+  },
+  {
+    "code": "OP15-001",
+    "name": "Krieg",
+    "effect": "[DON!! x1] [Opponent's Turn] If the only Characters on your field are {East Blue} type Characters, give all of your opponent's Characters -2000 power.\n[Activate: Main] [Once Per Turn] Rest up to 1 of your opponent's Characters that has 2 or more DON!! cards given."
+  },
+  {
+    "code": "OP09-097",
+    "name": "Black Vortex",
+    "effect": "[Counter] Negate the effect of up to 1 of your opponent's Leader or Character cards and give that card 4000 power during this turn.[Trigger] Negate the effect of up to 1 of your opponent's Leader or Character cards during this turn."
+  }
+]

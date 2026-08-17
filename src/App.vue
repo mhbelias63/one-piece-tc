@@ -12,30 +12,30 @@
       <!-- MENU DE NAVIGATION HORIZONTAL -->
       <nav class="nav-links-top">
         <router-link to="/" class="nav-item">
-          <span class="icon">🏴‍☠️</span>
+          <i class="pi pi-compass nav-icon"></i>
           <span class="label">Accueil</span>
         </router-link>
         <router-link to="/cards" class="nav-item">
-          <span class="icon">🎴</span>
+          <i class="pi pi-th-large nav-icon"></i>
           <span class="label">Collection</span>
         </router-link>
         <router-link to="/decks" class="nav-item">
-          <span class="icon">⚔️</span>
+          <i class="pi pi-clone nav-icon"></i>
           <span class="label">Decks</span>
         </router-link>
         <router-link to="/gacha" class="nav-item">
-          <span class="icon">📦</span>
+          <i class="pi pi-gift nav-icon"></i>
           <span class="label">Boosters</span>
         </router-link>
         
         <!-- ⚔️ BOUTON ARENA DUEL (PC) -->
-        <router-link to="/duel" class="nav-item duel-btn">
-          <span class="icon">💥</span>
+        <router-link to="/lobby" class="nav-item duel-btn">
+          <i class="pi pi-bolt nav-icon"></i>
           <span class="label">Arena Duel</span>
         </router-link>
 
         <button class="nav-item disabled">
-          <span class="icon">🏪</span>
+          <i class="pi pi-shop nav-icon"></i>
           <span class="label">Boutique</span>
         </button>
       </nav>
@@ -58,14 +58,14 @@
           <!-- DROPDOWN MENU -->
           <div v-if="menuOpen" class="profile-menu">
             <button class="menu-item" @click="openProfileModal">
-              <span class="icon">✏️</span> Modifier le profil
+              <i class="pi pi-user-edit menu-icon"></i> Modifier le profil
             </button>
             <button class="menu-item" @click="toggleTheme">
-              <span class="icon">{{ isLightTheme ? '🌙' : '☀️' }}</span> Mode {{ isLightTheme ? 'Sombre' : 'Clair' }}
+              <i class="pi" :class="isLightTheme ? 'pi-moon' : 'pi-sun'"></i> Mode {{ isLightTheme ? 'Sombre' : 'Clair' }}
             </button>
             <hr class="menu-divider" />
             <button class="menu-item logout-btn" @click="handleLogout">
-              <span class="icon">🚪</span> Déconnexion
+              <i class="pi pi-sign-out menu-icon"></i> Déconnexion
             </button>
           </div>
         </div>
@@ -244,6 +244,14 @@ html, body {
   transition: all 0.2s ease;
 }
 
+.nav-icon {
+  font-size: 1.05rem;
+}
+
+.menu-icon {
+  font-size: 0.95rem;
+}
+
 .nav-item:hover:not(.disabled) { background: rgba(255, 255, 255, 0.05); color: #ffffff; }
 .nav-item.router-link-active { background: #f59e0b; color: #111827; }
 .nav-item.disabled { opacity: 0.35; cursor: not-allowed; }
@@ -414,7 +422,7 @@ html, body {
     width: 18%;
   }
 
-  .nav-item .icon { font-size: 1.1rem; }
+  .nav-item .nav-icon { font-size: 1.15rem; }
 
   .content-body {
     padding: 12px;

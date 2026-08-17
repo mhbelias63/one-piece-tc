@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
-import { ref, computed, reactive } from 'vue'
+import { ref, computed } from 'vue'
 import DuelEngine, { GameplayPhase, CardZone, GameStyle } from '../engine/DuelEngine'
+import { TrainingBotController } from '../ai/trainingBotController'
+import cardEffects from '../../card_effects.json'
 
 export const useDuelStore = defineStore('duel', () => {
   // State
@@ -8,35 +10,84 @@ export const useDuelStore = defineStore('duel', () => {
   const gameState = computed(() => engine.value?.getGameState())
   const isGameActive = ref(false)
   const isInitialized = ref(false)
+  const isBotEnabled = ref(false)
+  const botHumanPlayerId = ref(0)
+  const botController = new TrainingBotController()
 
   // Computed properties for reactive UI
   const currentPlayer = computed(() => gameState.value?.getCurrentPlayer())
   const opponentPlayer = computed(() => gameState.value?.getOpponentPlayer())
+  
+  // For AI training mode: always show POV of human player
+  const humanPlayer = computed(() => {
+    if (!engine.value) return null
+    return engine.value.getPlayerState(botHumanPlayerId.value)
+  })
+  const humanOpponent = computed(() => {
+    if (!engine.value) return null
+    const oppId = botHumanPlayerId.value === 0 ? 1 : 0
+    return engine.value.getPlayerState(oppId)
+  })
+  
+  // Viewed player depends on AI mode
+  const viewedPlayer = computed(() => isBotEnabled.value ? humanPlayer.value : currentPlayer.value)
+  const viewedOpponent = computed(() => isBotEnabled.value ? humanOpponent.value : opponentPlayer.value)
+  
   const currentPhase = computed(() => gameState.value?.currentPhase)
   const turnCount = computed(() => gameState.value?.turnCount)
   const combatLog = computed(() => gameState.value?.combatLog || [])
 
-  // Player-specific computed properties
-  const playerHand = computed(() => currentPlayer.value?.zones[CardZone.HAND] || [])
-  const playerDeploy = computed(() => currentPlayer.value?.zones[CardZone.DEPLOY] || [])
-  const playerStage = computed(() => currentPlayer.value?.zones[CardZone.STAGE] || [])
-  const playerLeader = computed(() => currentPlayer.value?.zones[CardZone.LEADER] || [])
-  const playerDonActive = computed(() => currentPlayer.value?.zones[CardZone.DON_ACTIVE] || [])
-  const playerDonRested = computed(() => currentPlayer.value?.zones[CardZone.DON_RESTED] || [])
-  const playerTrash = computed(() => currentPlayer.value?.zones[CardZone.TRASH] || [])
-  const playerLife = computed(() => currentPlayer.value?.zones[CardZone.LIFE] || [])
-  const playerDeck = computed(() => currentPlayer.value?.zones[CardZone.DECK] || [])
+  // Targeting computed properties
+  const isTargetingActive = computed(() => engine.value?.targetingState?.active || false)
+  const targetingSource = computed(() => engine.value?.targetingState?.sourceCard || null)
+  const targetingOptions = computed(() => engine.value?.targetingState?.validTargets || [])
+  const isCardTargetable = computed(() => (card) => {
+    if (!isTargetingActive.value || !card) return false
+    return engine.value.targetingState.validTargets.some(
+      c => c.uniqueInstanceId === card.uniqueInstanceId
+    )
+  })
+  const isChoiceActive = computed(() => engine.value?.choiceState?.active || false)
+  const choiceOptions = computed(() => engine.value?.choiceState?.options || [])
+  const choiceContext = computed(() => engine.value?.choiceState?.context || null)
 
-  // Opponent zones
-  const opponentHand = computed(() => opponentPlayer.value?.zones[CardZone.HAND] || [])
-  const opponentDeploy = computed(() => opponentPlayer.value?.zones[CardZone.DEPLOY] || [])
-  const opponentStage = computed(() => opponentPlayer.value?.zones[CardZone.STAGE] || [])
-  const opponentLeader = computed(() => opponentPlayer.value?.zones[CardZone.LEADER] || [])
-  const opponentDonActive = computed(() => opponentPlayer.value?.zones[CardZone.DON_ACTIVE] || [])
-  const opponentDonRested = computed(() => opponentPlayer.value?.zones[CardZone.DON_RESTED] || [])
-  const opponentTrash = computed(() => opponentPlayer.value?.zones[CardZone.TRASH] || [])
-  const opponentLife = computed(() => opponentPlayer.value?.zones[CardZone.LIFE] || [])
-  const opponentDeck = computed(() => opponentPlayer.value?.zones[CardZone.DECK] || [])
+  // Player-specific computed properties (using viewed player for fixed POV in AI mode)
+  const playerHand = computed(() => viewedPlayer.value?.zones[CardZone.HAND] || [])
+  const playerDeploy = computed(() => viewedPlayer.value?.zones[CardZone.DEPLOY] || [])
+  const playerStage = computed(() => viewedPlayer.value?.zones[CardZone.STAGE] || [])
+  const playerLeader = computed(() => viewedPlayer.value?.zones[CardZone.LEADER] || [])
+  const playerDonActive = computed(() => viewedPlayer.value?.zones[CardZone.DON_ACTIVE] || [])
+  const playerDonRested = computed(() => viewedPlayer.value?.zones[CardZone.DON_RESTED] || [])
+  const playerTrash = computed(() => viewedPlayer.value?.zones[CardZone.TRASH] || [])
+  const playerLife = computed(() => viewedPlayer.value?.zones[CardZone.LIFE] || [])
+  const playerDeck = computed(() => viewedPlayer.value?.zones[CardZone.DECK] || [])
+
+  // Opponent zones (using viewed opponent)
+  const opponentDeploy = computed(() => viewedOpponent.value?.zones[CardZone.DEPLOY] || [])
+  const opponentStage = computed(() => viewedOpponent.value?.zones[CardZone.STAGE] || [])
+  const opponentLeader = computed(() => viewedOpponent.value?.zones[CardZone.LEADER] || [])
+  const opponentDonActive = computed(() => viewedOpponent.value?.zones[CardZone.DON_ACTIVE] || [])
+  const opponentDonRested = computed(() => viewedOpponent.value?.zones[CardZone.DON_RESTED] || [])
+  const opponentTrash = computed(() => viewedOpponent.value?.zones[CardZone.TRASH] || [])
+
+  function hiddenCard(card, zone) {
+    return {
+      uniqueInstanceId: card.uniqueInstanceId,
+      name: zone === CardZone.LIFE && card.isFaceUp ? card.name : 'Carte face cachee',
+      id: zone === CardZone.LIFE && card.isFaceUp ? card.id : null,
+      image_url: zone === CardZone.LIFE && card.isFaceUp ? card.image_url : null,
+      image: zone === CardZone.LIFE && card.isFaceUp ? card.image : null,
+      isFaceUp: zone === CardZone.LIFE && card.isFaceUp,
+      isHidden: !(zone === CardZone.LIFE && card.isFaceUp)
+    }
+  }
+
+  const opponentHand = computed(() => (viewedOpponent.value?.zones[CardZone.HAND] || [])
+    .map(card => hiddenCard(card, CardZone.HAND)))
+  const opponentLife = computed(() => (viewedOpponent.value?.zones[CardZone.LIFE] || [])
+    .map(card => hiddenCard(card, CardZone.LIFE)))
+  const opponentDeck = computed(() => (viewedOpponent.value?.zones[CardZone.DECK] || [])
+    .map(card => hiddenCard(card, CardZone.DECK)))
 
   // Combat state
   const attacker = computed(() => {
@@ -54,31 +105,44 @@ export const useDuelStore = defineStore('duel', () => {
   const winner = computed(() => gameState.value?.winner)
   const defeatReason = computed(() => gameState.value?.defeatReason)
 
-  // Resource tracking
-  const playerActiveDon = computed(() => currentPlayer.value?.activeDonCount || 0)
-  const playerRestedDon = computed(() => currentPlayer.value?.restedDonCount || 0)
-  const playerLifeRemaining = computed(() => currentPlayer.value?.lifeCount || 0)
+  // Resource tracking (using viewed players)
+  const playerActiveDon = computed(() => viewedPlayer.value?.activeDonCount || 0)
+  const playerRestedDon = computed(() => viewedPlayer.value?.restedDonCount || 0)
+  const playerLifeRemaining = computed(() => viewedPlayer.value?.lifeCount || 0)
 
-  const opponentActiveDon = computed(() => opponentPlayer.value?.activeDonCount || 0)
-  const opponentRestedDon = computed(() => opponentPlayer.value?.restedDonCount || 0)
-  const opponentLifeRemaining = computed(() => opponentPlayer.value?.lifeCount || 0)
+  const opponentActiveDon = computed(() => viewedOpponent.value?.activeDonCount || 0)
+  const opponentRestedDon = computed(() => viewedOpponent.value?.restedDonCount || 0)
+  const opponentLifeRemaining = computed(() => viewedOpponent.value?.lifeCount || 0)
 
   // ============================================================================
   // ACTIONS
   // ============================================================================
 
-  /**
-   * Initialize a new duel
-   * @param {Card[]} deck1 - Player 1's deck
-   * @param {Card[]} deck2 - Player 2's deck
-   * @param {string} leader1 - Player 1's leader ID
-   * @param {string} leader2 - Player 2's leader ID
-   * @param {string} style - Game style (LOCAL, MULTIPLAYER, OBSERVER)
-   */
+  function enrichDeckCards(deck) {
+    return (deck || []).map(card => {
+      const effectData = cardEffects[card.id]
+      const ast = Array.isArray(card.effect_ast)
+        ? card.effect_ast
+        : effectData?.ast
+      if (!ast) return card
+      return {
+        ...card,
+        effect: card.effect ?? effectData?.effect,
+        effects: card.effects ?? ast,
+        actionV3s: card.actionV3s ?? ast
+      }
+    })
+  }
+
   function initDuel(deck1, deck2, leader1, leader2, style = GameStyle.LOCAL) {
     try {
       engine.value = new DuelEngine(style)
-      engine.value.initializeDuel(deck1, deck2, leader1, leader2)
+      engine.value.initializeDuel(
+        enrichDeckCards(deck1),
+        enrichDeckCards(deck2),
+        leader1,
+        leader2
+      )
       isInitialized.value = true
       isGameActive.value = true
       return true
@@ -88,76 +152,93 @@ export const useDuelStore = defineStore('duel', () => {
     }
   }
 
-  /**
-   * Start the game (first turn)
-   */
   function startGame() {
     if (!isInitialized.value || !engine.value) return false
-
     engine.value.startTurn()
+    scheduleBotTurn()
     return true
   }
 
-  /**
-   * Play a card from hand
-   * @param {string} cardId - Card's unique instance ID
-   */
+  function configureBot({ enabled = false, humanPlayerId = 0 } = {}) {
+    isBotEnabled.value = Boolean(enabled)
+    botHumanPlayerId.value = Number(humanPlayerId) === 1 ? 1 : 0
+    botController.configure({ enabled: isBotEnabled.value, humanPlayerId: botHumanPlayerId.value })
+    scheduleBotTurn()
+  }
+
+  function scheduleBotTurn() {
+    botController.schedule({
+      getEngine,
+      get isGameActive() {
+        return isGameActive.value
+      }
+    })
+  }
+
   function playCard(cardId) {
     if (!engine.value) return false
     return engine.value.playCardFromHand(cardId)
   }
 
-  /**
-   * Declare an attack
-   * @param {string} attackerCardId - Attacker's card ID
-   * @param {string} defenderCardId - Target card ID (opponent's card or leader)
-   */
   function declareAttack(attackerCardId, defenderCardId) {
     if (!engine.value) return false
-    return engine.value.declareAttack(attackerCardId, defenderCardId)
+    const result = engine.value.declareAttack(attackerCardId, defenderCardId)
+    if (result) scheduleBotTurn()
+    return result
   }
 
-  /**
-   * Declare a blocker
-   * @param {string} blockerCardId - Blocker's card ID
-   */
   function declareBlocker(blockerCardId) {
     if (!engine.value) return false
     return engine.value.declareBlocker(blockerCardId)
   }
 
-  /**
-   * Resolve combat
-   */
+  function selectTarget(targetCard) {
+    if (!engine.value) return false
+    return engine.value.selectTarget(targetCard)
+  }
+
+  function chooseEffectOption(index) {
+    if (!engine.value) return false
+    return engine.value.chooseEffectOption(index)
+  }
+
+  function chooseLookAndPlace(cardId, placement) {
+    if (!engine.value) return false
+    return engine.value.chooseLookAndPlace(cardId, placement)
+  }
+
+  function activateMainEffect(cardId) {
+    if (!engine.value) return false
+    return engine.value.activateMainEffect(cardId)
+  }
+
+  function cancelTargeting() {
+    if (!engine.value) return
+    engine.value.cancelTargetSelection()
+  }
+
   function resolveCombat() {
     if (!engine.value) return false
     engine.value.resolveCombat()
     return true
   }
 
-  /**
-   * Advance to next phase
-   */
   function nextPhase() {
     if (!engine.value) return false
-    engine.value.nextPhase()
-    return true
+    const result = engine.value.nextPhase()
+    scheduleBotTurn()
+    return result
   }
 
-  /**
-   * End current player's turn
-   */
   function endTurn() {
     if (!engine.value) return false
     engine.value.endTurn()
     engine.value.gameState.switchTurn()
     engine.value.startTurn()
+    scheduleBotTurn()
     return true
   }
 
-  /**
-   * Concede the game
-   */
   function concede() {
     if (!engine.value) return false
     const currentPlayerId = gameState.value.currentPlayerTurnId
@@ -167,69 +248,48 @@ export const useDuelStore = defineStore('duel', () => {
     return true
   }
 
-  /**
-   * Get the game engine instance (for debugging)
-   */
   function getEngine() {
     return engine.value
   }
 
-  /**
-   * Reset the duel state
-   */
   function resetDuel() {
+    botController.clearTimer()
     engine.value = null
     isInitialized.value = false
     isGameActive.value = false
+    isBotEnabled.value = false
+    botHumanPlayerId.value = 0
   }
 
   // ============================================================================
   // HELPER FUNCTIONS
   // ============================================================================
 
-  /**
-   * Find a card by its unique instance ID
-   */
   function findCard(cardId) {
     if (!engine.value) return null
     return engine.value.findCard(cardId)
   }
 
-  /**
-   * Get player's available don (untapped)
-   */
   function getAvailableDon(playerId = 0) {
     if (!engine.value) return 0
     return engine.value.getPlayerState(playerId).getAvailableDon()
   }
 
-  /**
-   * Get player's rested don (tapped)
-   */
   function getRestedDon(playerId = 0) {
     if (!engine.value) return 0
     return engine.value.getPlayerState(playerId).getRestedDon()
   }
 
-  /**
-   * Check if player can deploy a character
-   */
   function canDeployCharacter(playerId = 0) {
     if (!engine.value) return false
     return engine.value.getPlayerState(playerId).canDeployCharacter()
   }
 
-  /**
-   * Get cards in a specific zone for a player
-   */
   function getZone(playerId, zoneName) {
     if (!engine.value) return []
     return engine.value.getPlayerState(playerId).getZone(zoneName)
   }
 
-  /**
-   * Get phase display name
-   */
   function getPhaseDisplayName(phase = currentPhase.value) {
     const phaseNames = {
       [GameplayPhase.DRAW]: 'Draw Phase',
@@ -247,9 +307,20 @@ export const useDuelStore = defineStore('duel', () => {
     gameState,
     isGameActive,
     isInitialized,
+    isBotEnabled,
+    botHumanPlayerId,
     currentPhase,
     turnCount,
     combatLog,
+
+    // Targeting
+    isTargetingActive,
+    targetingSource,
+    targetingOptions,
+    isCardTargetable,
+    isChoiceActive,
+    choiceOptions,
+    choiceContext,
 
     // Player zones
     playerHand,
@@ -292,9 +363,16 @@ export const useDuelStore = defineStore('duel', () => {
     // Actions
     initDuel,
     startGame,
+    configureBot,
+    scheduleBotTurn,
     playCard,
     declareAttack,
     declareBlocker,
+    selectTarget,
+    chooseEffectOption,
+    chooseLookAndPlace,
+    activateMainEffect,
+    cancelTargeting,
     resolveCombat,
     nextPhase,
     endTurn,

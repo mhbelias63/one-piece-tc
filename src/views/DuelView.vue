@@ -6,11 +6,14 @@
       'right-hidden': rightCollapsed 
     }"
   >
-    <!-- Initialiser le duel si pas déjà fait -->
-    <div v-if="!duelStore.isGameActive" class="init-overlay">
-      <button @click="initializeDuel" class="init-btn">
-        {{ isLoading ? 'Chargement du Deck ST01...' : 'Lancer le Duel (ST01)' }}
-      </button>
+    <!-- Overlay de chargement uniquement -->
+    <div v-if="isLoading" class="init-overlay">
+      <div class="loader-box">
+        <div class="spinner-wrapper">
+          <div class="spinner"></div>
+          <p class="loading-text">Chargement du deck {{ selectedStarterDeck }} et préparation du plateau...</p>
+        </div>
+      </div>
     </div>
 
     <!-- 1. PANNEAU GAUCHE -->
@@ -25,17 +28,24 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useDuelStore } from '../stores/duelStore'
 import { fetchCardsCached } from '../services/playerService'
 import DuelLeftSidebar from '../components/duel/DuelLeftSidebar.vue'
 import PlaymatBoard from '../components/duel/PlaymatBoard.vue'
 import DuelRightSidebar from '../components/duel/DuelRightSidebar.vue'
 
+const route = useRoute()
+const router = useRouter()
 const duelStore = useDuelStore()
+
 const leftCollapsed = ref(false)
 const rightCollapsed = ref(false)
 const isLoading = ref(false)
+const selectedStarterDeck = route.query.starter === 'ST03' ? 'ST03' : 'ST01'
+const useAi = route.query.ai === 'true'
+const humanPlayerId = route.query.humanPlayerId === '1' ? 1 : 0
 
 const ST01_RECIPE = {
   leaderId: 'ST01-001',
@@ -59,19 +69,32 @@ const ST01_RECIPE = {
   ]
 }
 
+onMounted(() => {
+  // 1. Si on vient du lobby avec autoStart, on lance la préparation du duel
+  if ((route.query.autoStart === 'true' || route.query.mode === 'practice') && !duelStore.isGameActive) {
+    initializeDuel()
+  } 
+  // 2. Si aucune partie n'est active (ex: accès direct à /duel ou rafraîchissement), retour direct au lobby
+  else if (!duelStore.isGameActive) {
+    router.push('/lobby')
+  }
+})
+
 function findCardInBdd(allCards, targetId) {
   return allCards.find(c => c.id === targetId || c.id.includes(targetId))
 }
 
 async function buildFullDeck(allCards) {
+  if (selectedStarterDeck === 'ST03') {
+    return buildGeneratedStarterDeck(allCards, 'ST03', 'ST03-001')
+  }
+
   const deckList = []
 
-  // 1. Récupération et ajout du LEADER obligatoirement dans la liste du deck
   const leaderData = findCardInBdd(allCards, ST01_RECIPE.leaderId)
   if (leaderData) {
-    deckList.push({ ...leaderData, id: ST01_RECIPE.leaderId }) // Force l'ID propre
+    deckList.push({ ...leaderData, id: ST01_RECIPE.leaderId })
   } else {
-    // Fallback de sécurité si le leader n'est pas trouvé
     deckList.push({
       id: ST01_RECIPE.leaderId,
       name: 'Monkey.D.Luffy',
@@ -81,16 +104,14 @@ async function buildFullDeck(allCards) {
     })
   }
 
-  // 2. Ajout des 50 cartes du deck
   ST01_RECIPE.cards.forEach(item => {
     const cardData = findCardInBdd(allCards, item.id)
     if (cardData) {
       for (let i = 0; i < item.count; i++) {
-        deckList.push({ ...cardData, id: item.id }) // Force l'ID exact
+        deckList.push({ ...cardData, id: item.id })
       }
     } else {
       console.warn(`Carte manquante dans BDD : ${item.id}`)
-      // Fallback
       for (let i = 0; i < item.count; i++) {
         deckList.push({
           id: item.id,
@@ -107,35 +128,52 @@ async function buildFullDeck(allCards) {
   return deckList
 }
 
+function buildGeneratedStarterDeck(allCards, setCode, leaderId) {
+  const setCards = allCards.filter(card => {
+    return card.id?.startsWith(`${setCode}-`) && !/_ALT_\d+$/i.test(card.id)
+  })
+  const leaderData = findCardInBdd(setCards, leaderId)
+  const deckList = [{
+    ...(leaderData || { id: leaderId, name: leaderId, type: 'leader', power: 5000 }),
+    id: leaderId
+  }]
+  const cards = setCards.filter(card => card.id !== leaderId)
+
+  for (let index = 0; deckList.length < 50 && cards.length > 0; index++) {
+    const cardData = cards[index % cards.length]
+    deckList.push({ ...cardData, id: cardData.id })
+  }
+
+  return deckList
+}
+
 async function initializeDuel() {
   if (isLoading.value) return
   isLoading.value = true
 
   try {
-    console.log("🚀 Démarrage du duel...")
-    const allCards = await fetchCardsCached(true) // Force la maj Supabase
+    const allCards = await fetchCardsCached(true)
 
     const deck1 = await buildFullDeck(allCards)
     const deck2 = await buildFullDeck(allCards)
 
-    console.log(`📦 Deck 1 préparé : ${deck1.length} cartes (avec Leader)`)
-
-    // Initialisation
     const success = duelStore.initDuel(
       deck1,
       deck2,
-      ST01_RECIPE.leaderId,
-      ST01_RECIPE.leaderId
+      selectedStarterDeck === 'ST03' ? 'ST03-001' : ST01_RECIPE.leaderId,
+      selectedStarterDeck === 'ST03' ? 'ST03-001' : ST01_RECIPE.leaderId
     )
 
     if (success) {
+      duelStore.configureBot({ enabled: useAi, humanPlayerId })
       duelStore.startGame()
-      console.log("🎮 Duel démarré avec succès !")
     } else {
       console.error("❌ Échec de l'initialisation dans le Store Pinia.")
+      router.push('/lobby')
     }
   } catch (error) {
     console.error("❌ Erreur critique lors de initializeDuel :", error)
+    router.push('/lobby')
   } finally {
     isLoading.value = false
   }
@@ -162,30 +200,46 @@ async function initializeDuel() {
 .duel-fullscreen.right-hidden { grid-template-columns: 320px 1fr 0px; }
 .duel-fullscreen.left-hidden.right-hidden { grid-template-columns: 0px 1fr 0px; }
 
+/* OVERLAY DE CHARGEMENT */
 .init-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.9);
+  background: rgba(2, 6, 23, 0.95);
+  backdrop-filter: blur(8px);
   z-index: 10000;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.init-btn {
-  padding: 15px 40px;
-  background: #f59e0b;
-  color: #000;
-  border: none;
-  border-radius: 8px;
-  font-weight: bold;
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: all 0.2s;
+.loader-box {
+  text-align: center;
 }
 
-.init-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 30px #f59e0b;
+.spinner-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(245, 158, 11, 0.2);
+  border-top-color: #f59e0b;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  color: #fbbf24;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin: 0;
 }
 </style>

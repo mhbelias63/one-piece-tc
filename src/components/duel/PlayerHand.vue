@@ -45,10 +45,13 @@ let startX = 0
 let initialOffset = 0
 
 function handleCardClick(card) {
-  // Émet l'action de jouer la carte lors du clic
-  emit('play-card', card.uniqueInstanceId || card.id)
-}
+  const type = card.type?.toLowerCase()
 
+  // On autorise la pose si c'est un Personnage, un Event OU un Stage
+  if (type === 'character' || type === 'event' || type === 'stage') {
+    emit('play-card', card.uniqueInstanceId || card.id)
+  }
+}
 function startDrag(e) {
   isDragging.value = true
   startX = e.clientX
